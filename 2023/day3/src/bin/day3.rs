@@ -1,108 +1,166 @@
 const INPUT: &str = include_str!("../../data/input.txt");
-const RADIX: u32 = 10;
 
 fn main() {
-    println!("{INPUT}");
+//     let input = "\
+// 467..114..
+// ...*......
+// ..35..633.
+// ......#...
+// 617*......
+// .....+.58.
+// ..592.....
+// ......755.
+// ...$.*....
+// .664.598..\
+// ";
+
+//     let input2 = "\
+// ...................15....904...........850.................329...................13....................................871....816....697....
+// ...........53.497........................%....906...610.......*.............735#..&...*......558...68...............68..*......&....*.......\
+// ";
+
+    assert!('*'.is_ascii_punctuation());
+
+    let solved = solve(INPUT);
+    println!("{solved}");
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, Copy)]
 struct Number {
-    chars: Vec<char>,
+    integer: u32,
     index: usize,
+    len: usize,
 }
 
 impl Number {
-    fn as_u32(&self) -> u32 {
-        let num_string: String = self.chars.iter().collect();
-        num_string
-            .parse()
-            .expect("chars in number struct should parse into a number")
+    fn end_index(&self) -> usize {
+        self.index + self.len - 1
     }
 }
 
-#[derive(Default)]
-struct Symbol {
-    index: usize,
-}
-
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 struct Line {
-    text: &'static str,
     numbers: Vec<Number>,
-    symbols: Vec<Symbol>,
 }
 
 fn solve(input: &str) -> u32 {
-    let adjacent_numbers = Vec::new();
+    let mut adjacent_numbers = Vec::new();
+
     let lines: Vec<&str> = input.lines().collect();
+
     for (line_index, &line) in lines.iter().enumerate() {
         let mut l = Line::default();
+
         let chars: Vec<char> = line.chars().collect();
-        
+
         let mut char_index = 0;
+
         while char_index < chars.len() {
-            if chars[char_index] == '.' {
-                char_index += 1;
-                continue;
-            } else if chars[char_index].is_numeric() {
-                let mut n = Number {
+            if chars[char_index].is_numeric() {
+                let mut n: Number = Number {
                     index: char_index,
-                    chars: Vec::new(),
+                    integer: 0,
+                    len: 0,
                 };
+                let mut number_builder: Vec<char> = Vec::new();
+
                 while char_index < chars.len() && chars[char_index].is_numeric() {
                     let c = chars[char_index];
-                    n.chars.push(c);
+                    number_builder.push(c);
                     char_index += 1;
                 }
+
+                n.len = number_builder.len();
+                n.integer = number_builder
+                    .iter()
+                    .collect::<String>()
+                    .parse()
+                    .expect("checked is numeric");
+
                 l.numbers.push(n);
+
                 continue;
-            } else if chars[char_index].is_ascii_punctuation() {
-                let s = Symbol {
-                    index: char_index
-                };
-                l.symbols.push(s);
-                char_index += 1;
             } else {
                 char_index += 1;
+
+                continue;
             }
-        }  
+        }
 
         for n in l.numbers {
-            for s in l.symbols {
-                if n.index - 1 == s.index || n.index + 1 == s.index {
+            println!("current number {:?} end idx: {}", n, n.end_index());
+
+            // check current line for adjacent
+            if n.index > 0 {
+                println!("Check current line prev char");
+                if chars[n.index - 1].is_ascii_punctuation() && chars[n.index - 1] != '.' {
                     adjacent_numbers.push(n);
-                    break;
-                }
-
-                if line_index == 0 {
-                    let peek_line = lines[line_index + 1];
-                    let peek_line_chars = peek_line.chars();
-                    
+                    println!("true");
+                    continue;
                 }
             }
 
-        }
-
-        // assess current line
-        for num in &nums {
-            if symbol_index.contains(num.index - 1)
-                || symbol_index.contains(num.get_end_index() + 1)
-            {
-                adjacent_numbers.push()
+            if n.end_index() + 1 < chars.len() - 1 {
+                println!("Check current line next char");
+                let next_char = chars[n.end_index() + 1];
+                if next_char.is_ascii_punctuation() && next_char != '.' {
+                    adjacent_numbers.push(n);
+                    println!("true");
+                    continue;
+                }
             }
-        }
 
-        if line_index == 0 {
-            // only peek to next line
-        } else if line_index == lines.len() - 1 {
-            // only peek to prev line
-        } else {
-            // check both next and prev for diagonal
+            if line_index > 0 {
+                // check prev line for adjacent
+                println!("Check prev line adjacent");
+                let peek_line = lines[line_index - 1];
+                let mut found = false;
+                for (peek_char_index, peek_char) in peek_line.chars().enumerate() {
+                    if peek_char.is_ascii_punctuation()
+                        && peek_char != '.'
+                        && peek_char_index >= if n.index > 1 { n.index - 1 } else { 0 }
+                        && peek_char_index <= n.end_index() + 1
+                    {
+                        adjacent_numbers.push(n);
+                        found = true;
+                        println!("true");
+                        break;
+                    }
+                }
+                if found {
+                    continue;
+                }
+            }
+
+            if line_index < lines.len() - 1 {
+                // check next line for adjacent
+                println!("Check next line adjacent");
+                let peek_line = lines[line_index + 1];
+                let mut found = false;
+                for (peek_char_index, peek_char) in peek_line.chars().enumerate() {
+                    if peek_char.is_ascii_punctuation()
+                        && peek_char != '.'
+                        && peek_char_index >= if n.index > 1 { n.index - 1 } else { 0 }
+                        && peek_char_index <= n.end_index() + 1
+                    {
+                        adjacent_numbers.push(n);
+                        found = true;
+                        println!("true");
+                        break;
+                    }
+                }
+                if found {
+                    continue;
+                }
+            }
         }
     }
 
-    0
+    adjacent_numbers.iter().fold(0, |a, c| c.integer + a)
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    #[test]
+    fn test() {}
+}
