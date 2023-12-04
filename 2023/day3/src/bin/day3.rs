@@ -97,31 +97,31 @@ fn solve_part_1(input: &str) -> u32 {
         }
 
         for n in l.numbers {
-            println!("current number {:?} end idx: {}", n, n.end_index());
+            // println!("current number {:?} end idx: {}", n, n.end_index());
 
             // check current line for adjacent
             if n.index > 0 {
-                println!("Check current line prev char");
+                // println!("Check current line prev char");
                 if chars[n.index - 1].is_ascii_punctuation() && chars[n.index - 1] != '.' {
                     adjacent_numbers.push(n);
-                    println!("true");
+                    // println!("true");
                     continue;
                 }
             }
 
             if n.end_index() + 1 < chars.len() - 1 {
-                println!("Check current line next char");
+                // println!("Check current line next char");
                 let next_char = chars[n.end_index() + 1];
                 if next_char.is_ascii_punctuation() && next_char != '.' {
                     adjacent_numbers.push(n);
-                    println!("true");
+                    // println!("true");
                     continue;
                 }
             }
 
             if line_index > 0 {
                 // check prev line for adjacent
-                println!("Check prev line adjacent");
+                // println!("Check prev line adjacent");
                 let peek_line = lines[line_index - 1];
                 let mut found = false;
                 for (peek_char_index, peek_char) in peek_line.chars().enumerate() {
@@ -132,7 +132,7 @@ fn solve_part_1(input: &str) -> u32 {
                     {
                         adjacent_numbers.push(n);
                         found = true;
-                        println!("true");
+                        // println!("true");
                         break;
                     }
                 }
@@ -143,7 +143,7 @@ fn solve_part_1(input: &str) -> u32 {
 
             if line_index < lines.len() - 1 {
                 // check next line for adjacent
-                println!("Check next line adjacent");
+                // println!("Check next line adjacent");
                 let peek_line = lines[line_index + 1];
                 let mut found = false;
                 for (peek_char_index, peek_char) in peek_line.chars().enumerate() {
@@ -154,7 +154,7 @@ fn solve_part_1(input: &str) -> u32 {
                     {
                         adjacent_numbers.push(n);
                         found = true;
-                        println!("true");
+                        // println!("true");
                         break;
                     }
                 }
@@ -182,7 +182,7 @@ fn solve_part_2(input: &str) -> u64 {
 
                 let mut backward = String::new();
 
-                println!("check backward adj");
+                // println!("check backward adj");
                 let mut char_backward_idx = char_idx - 1;
                 while char_backward_idx >= 0 && chars[char_backward_idx].is_digit(10) {
                     backward.push(chars[char_backward_idx]);
@@ -196,11 +196,11 @@ fn solve_part_2(input: &str) -> u64 {
                 let has_backward_adjacent = !!backward.len() > 0;
                 if has_backward_adjacent {
                     let reversed: String = backward.chars().rev().collect();
-                    println!("has backward adjacent: {}", reversed);
+                    // println!("has backward adjacent: {}", reversed);
                     adjacents.push(reversed.parse().expect("already checked this for digit"));
                 }
 
-                println!("check forward adj");
+                // println!("check forward adj");
                 let mut char_forward_idx = char_idx + 1;
                 let mut forward = String::new();
                 while char_forward_idx != chars.len() - 1 && chars[char_forward_idx].is_digit(10) {
@@ -210,12 +210,12 @@ fn solve_part_2(input: &str) -> u64 {
 
                 let has_forward_adjacent = !!forward.len() > 0;
                 if has_forward_adjacent {
-                    println!("has forward adjacent: {}", forward);
+                    // println!("has forward adjacent: {}", forward);
                     adjacents.push(forward.parse().expect("already checked this for digit"));
                 }
 
                 if line_idx > 0 {
-                    println!("check prev line adj");
+                    // println!("check prev line adj");
                     let prev_line = lines[line_idx - 1];
                     let prev_chars: Vec<char> = prev_line.chars().collect();
                     let mut prev_line_adjacent = String::new();
@@ -243,22 +243,20 @@ fn solve_part_2(input: &str) -> u64 {
                     for prev_line_adj_idx in prev_line_start_adj_idx..=prev_line_end_adj_idx {
                         if prev_chars[prev_line_adj_idx].is_digit(10) {
                             prev_line_adjacent.push(prev_chars[prev_line_adj_idx])
+                        } else {
+                            prev_line_adjacent.push(' ')
                         }
                     }
 
-                    let has_prev_line_adjacent = !!prev_line_adjacent.len() > 0;
-                    if has_prev_line_adjacent {
-                        println!("has prev line adjacent: {}", prev_line_adjacent);
-                        adjacents.push(
-                            prev_line_adjacent
-                                .parse()
-                                .expect("already checked this for digit"),
-                        );
+                    let prev_line_adjs: Vec<&str> =
+                        prev_line_adjacent.split_ascii_whitespace().collect();
+                    for prev_line_adj in prev_line_adjs {
+                        adjacents.push(prev_line_adj.parse().expect("should be num"))
                     }
                 }
 
                 if line_idx < lines.len() - 1 {
-                    println!("check next line adj");
+                    // println!("check next line adj");
                     let next_line = lines[line_idx + 1];
                     let next_chars: Vec<char> = next_line.chars().collect();
                     let mut next_line_adjacent = String::new();
@@ -284,30 +282,27 @@ fn solve_part_2(input: &str) -> u64 {
                     for next_line_adj_idx in next_line_start_adj_idx..=next_line_end_adj_idx {
                         if next_chars[next_line_adj_idx].is_digit(10) {
                             next_line_adjacent.push(next_chars[next_line_adj_idx])
+                        } else {
+                            next_line_adjacent.push(' ');
                         }
                     }
-
-                    let has_next_line_adjacent = !!next_line_adjacent.len() > 0;
-                    if has_next_line_adjacent {
-                        println!("has next line adjacent: {}", next_line_adjacent);
-                        adjacents.push(
-                            next_line_adjacent
-                                .parse()
-                                .expect("already checked for digit"),
-                        );
+                    let next_line_adjs: Vec<&str> =
+                        next_line_adjacent.split_ascii_whitespace().collect();
+                    for next_line_adj in next_line_adjs {
+                        adjacents.push(next_line_adj.parse().expect("should be num"))
                     }
                 }
 
-                println!("adjacents: {:?}", adjacents);
+                // println!("adjacents: {:?}", adjacents);
 
                 if adjacents.len() == 2 {
-                    println!(
-                        "calculating gear ratio: {} * {}",
-                        adjacents[0], adjacents[1]
-                    );
+                    // println!(
+                    //     "calculating gear ratio: {} * {}",
+                    //     adjacents[0], adjacents[1]
+                    // );
                     gear_ratios.push(adjacents[0] * adjacents[1])
                 } else {
-                    println!("too many or too few adjacents, not a gear");
+                    // println!("too many or too few adjacents, not a gear");
                 }
             }
         }
