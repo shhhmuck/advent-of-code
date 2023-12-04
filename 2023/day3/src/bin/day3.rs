@@ -174,12 +174,6 @@ fn solve_part_2(input: &str) -> u64 {
     let lines: Vec<&str> = input.lines().collect();
 
     for (line_idx, line) in lines.iter().enumerate() {
-        if line_idx == 0 || line_idx == lines.len() - 1 {
-            // cannot have a gear on first or last line
-            println!("First or last line");
-            continue;
-        }
-
         let chars: Vec<char> = line.chars().collect();
 
         for (char_idx, &char) in chars.iter().enumerate() {
@@ -220,84 +214,88 @@ fn solve_part_2(input: &str) -> u64 {
                     adjacents.push(forward.parse().expect("already checked this for digit"));
                 }
 
-                println!("check prev line adj");
-                let prev_line = lines[line_idx - 1];
-                let prev_chars: Vec<char> = prev_line.chars().collect();
-                let mut prev_line_adjacent = String::new();
-                let mut prev_line_start_adj_idx = if char_idx > 0 { char_idx - 1 } else { 0 };
-                let mut prev_line_end_adj_idx = if char_idx == prev_chars.len() - 1 {
-                    char_idx
-                } else {
-                    char_idx + 1
-                };
+                if line_idx > 0 {
+                    println!("check prev line adj");
+                    let prev_line = lines[line_idx - 1];
+                    let prev_chars: Vec<char> = prev_line.chars().collect();
+                    let mut prev_line_adjacent = String::new();
+                    let mut prev_line_start_adj_idx = if char_idx > 0 { char_idx - 1 } else { 0 };
+                    let mut prev_line_end_adj_idx = if char_idx == prev_chars.len() - 1 {
+                        char_idx
+                    } else {
+                        char_idx + 1
+                    };
 
-                // move the start index backward if the digit goes back from the adjacent edge
-                while prev_chars[prev_line_start_adj_idx].is_digit(10)
-                    && prev_line_start_adj_idx > 0
-                {
-                    prev_line_start_adj_idx -= 1;
-                }
+                    // move the start index backward if the digit goes back from the adjacent edge
+                    while prev_chars[prev_line_start_adj_idx].is_digit(10)
+                        && prev_line_start_adj_idx > 0
+                    {
+                        prev_line_start_adj_idx -= 1;
+                    }
 
-                // move the end index forward if the digit goes forward from the adjacent edge
-                while prev_chars[prev_line_end_adj_idx].is_digit(10)
-                    && prev_line_end_adj_idx < prev_chars.len() - 1
-                {
-                    prev_line_end_adj_idx += 1;
-                }
+                    // move the end index forward if the digit goes forward from the adjacent edge
+                    while prev_chars[prev_line_end_adj_idx].is_digit(10)
+                        && prev_line_end_adj_idx < prev_chars.len() - 1
+                    {
+                        prev_line_end_adj_idx += 1;
+                    }
 
-                for prev_line_adj_idx in prev_line_start_adj_idx..=prev_line_end_adj_idx {
-                    if prev_chars[prev_line_adj_idx].is_digit(10) {
-                        prev_line_adjacent.push(prev_chars[prev_line_adj_idx])
+                    for prev_line_adj_idx in prev_line_start_adj_idx..=prev_line_end_adj_idx {
+                        if prev_chars[prev_line_adj_idx].is_digit(10) {
+                            prev_line_adjacent.push(prev_chars[prev_line_adj_idx])
+                        }
+                    }
+
+                    let has_prev_line_adjacent = !!prev_line_adjacent.len() > 0;
+                    if has_prev_line_adjacent {
+                        println!("has prev line adjacent: {}", prev_line_adjacent);
+                        adjacents.push(
+                            prev_line_adjacent
+                                .parse()
+                                .expect("already checked this for digit"),
+                        );
                     }
                 }
 
-                let has_prev_line_adjacent = !!prev_line_adjacent.len() > 0;
-                if has_prev_line_adjacent {
-                    println!("has prev line adjacent: {}", prev_line_adjacent);
-                    adjacents.push(
-                        prev_line_adjacent
-                            .parse()
-                            .expect("already checked this for digit"),
-                    );
-                }
+                if line_idx < lines.len() - 1 {
+                    println!("check next line adj");
+                    let next_line = lines[line_idx + 1];
+                    let next_chars: Vec<char> = next_line.chars().collect();
+                    let mut next_line_adjacent = String::new();
+                    let mut next_line_start_adj_idx = if char_idx > 0 { char_idx - 1 } else { 0 };
+                    let mut next_line_end_adj_idx = if char_idx == next_chars.len() - 1 {
+                        char_idx
+                    } else {
+                        char_idx + 1
+                    };
 
-                println!("check next line adj");
-                let next_line = lines[line_idx + 1];
-                let next_chars: Vec<char> = next_line.chars().collect();
-                let mut next_line_adjacent = String::new();
-                let mut next_line_start_adj_idx = if char_idx > 0 { char_idx - 1 } else { 0 };
-                let mut next_line_end_adj_idx = if char_idx == next_chars.len() - 1 {
-                    char_idx
-                } else {
-                    char_idx + 1
-                };
-
-                while next_chars[next_line_start_adj_idx].is_digit(10)
-                    && next_line_start_adj_idx > 0
-                {
-                    next_line_start_adj_idx -= 1;
-                }
-
-                while next_chars[next_line_end_adj_idx].is_digit(10)
-                    && next_line_end_adj_idx < next_chars.len() - 1
-                {
-                    next_line_end_adj_idx += 1;
-                }
-
-                for next_line_adj_idx in next_line_start_adj_idx..=next_line_end_adj_idx {
-                    if next_chars[next_line_adj_idx].is_digit(10) {
-                        next_line_adjacent.push(next_chars[next_line_adj_idx])
+                    while next_chars[next_line_start_adj_idx].is_digit(10)
+                        && next_line_start_adj_idx > 0
+                    {
+                        next_line_start_adj_idx -= 1;
                     }
-                }
 
-                let has_next_line_adjacent = !!next_line_adjacent.len() > 0;
-                if has_next_line_adjacent {
-                    println!("has next line adjacent: {}", next_line_adjacent);
-                    adjacents.push(
-                        next_line_adjacent
-                            .parse()
-                            .expect("already checked for digit"),
-                    );
+                    while next_chars[next_line_end_adj_idx].is_digit(10)
+                        && next_line_end_adj_idx < next_chars.len() - 1
+                    {
+                        next_line_end_adj_idx += 1;
+                    }
+
+                    for next_line_adj_idx in next_line_start_adj_idx..=next_line_end_adj_idx {
+                        if next_chars[next_line_adj_idx].is_digit(10) {
+                            next_line_adjacent.push(next_chars[next_line_adj_idx])
+                        }
+                    }
+
+                    let has_next_line_adjacent = !!next_line_adjacent.len() > 0;
+                    if has_next_line_adjacent {
+                        println!("has next line adjacent: {}", next_line_adjacent);
+                        adjacents.push(
+                            next_line_adjacent
+                                .parse()
+                                .expect("already checked for digit"),
+                        );
+                    }
                 }
 
                 println!("adjacents: {:?}", adjacents);
@@ -311,8 +309,6 @@ fn solve_part_2(input: &str) -> u64 {
                 } else {
                     println!("too many or too few adjacents, not a gear");
                 }
-
-                adjacents.clear();
             }
         }
     }
