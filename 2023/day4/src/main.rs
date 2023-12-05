@@ -83,20 +83,13 @@ fn part_2(input: &str) -> u32 {
         }
         card.wins = wins;
         let final_card_count = card.count;
-        // let final_card_wins = card.wins;
-
         // println!("final card {} {:?}",idx+1, card);
-
-        // drop(card);
-
         let wins: usize = wins.try_into().expect("will fit into usize");
 
         if wins != 0 {
             for i in idx + 1..=idx + wins {
                 let future_card = card_map.entry(i).or_insert(Card { count: 0, wins: 0 });
-                
                 future_card.count += final_card_count;
-
                 // println!("future card {}: {:?}", i, future_card);
             }
         }
@@ -109,8 +102,7 @@ fn part_2(input: &str) -> u32 {
     // println!("{:#?}", card_map);
 
     for card in card_map.values() {
-
-       total += card.count;
+        total += card.count;
     }
 
     total
