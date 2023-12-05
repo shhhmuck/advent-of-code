@@ -61,18 +61,15 @@ fn part_2(input: &str) -> u32 {
     let mut idx = 0;
 
     while idx < lines.len() {
+        let mut wins: u32 = 0;
+
         let card = card_map.entry(idx).or_insert(Card { count: 0, wins: 0 });
         card.count += 1;
 
         let line = lines[idx];
-
-        let mut wins: u32 = 0;
-
         let line: String = line.chars().collect();
         let line = line[(line.find(':').expect("line will have :") + 1)..].to_string();
-
         let split: Vec<&str> = line.split('|').collect();
-
         let winners: Vec<&str> = split[0].split_ascii_whitespace().collect();
         let numbers: Vec<&str> = split[1].split_ascii_whitespace().collect();
 
@@ -83,24 +80,16 @@ fn part_2(input: &str) -> u32 {
         }
         card.wins = wins;
         let final_card_count = card.count;
-        // println!("final card {} {:?}",idx+1, card);
         let wins: usize = wins.try_into().expect("will fit into usize");
-
         if wins != 0 {
             for i in idx + 1..=idx + wins {
                 let future_card = card_map.entry(i).or_insert(Card { count: 0, wins: 0 });
                 future_card.count += final_card_count;
-                // println!("future card {}: {:?}", i, future_card);
             }
         }
-
-        // println!("index {} :: wins {} :: map {:?}", idx, wins, card_map);
-
         idx += 1;
     }
-
     // println!("{:#?}", card_map);
-
     for card in card_map.values() {
         total += card.count;
     }
