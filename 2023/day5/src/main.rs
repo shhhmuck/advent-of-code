@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f32::INFINITY};
+use std::collections::HashMap;
 
 const INPUT: &str = include_str!("./input.txt");
 const TEST: &str = "\
@@ -44,7 +44,6 @@ fn main() {
 
 #[derive(Debug)]
 struct Category {
-    source: String,
     destination: String,
     ranges: Vec<Range>,
 }
@@ -89,7 +88,6 @@ fn part_1(input: &str) -> u64 {
             sources.push(source);
 
             let category = Category {
-                source: source.to_string(),
                 destination,
                 ranges: Vec::new(),
             };
@@ -113,7 +111,7 @@ fn part_1(input: &str) -> u64 {
     let mut source = "seed";
 
     for seed in seeds {
-        let mut seed_mapping = seed;      
+        let mut seed_mapping = seed;
         while map.contains_key(source) {
             let category = map.get(source).unwrap();
             for range in &category.ranges {
