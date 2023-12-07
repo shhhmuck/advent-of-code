@@ -72,11 +72,11 @@ impl Range {
     }
 
     fn source_range_end(&self) -> u128 {
-        self.source_range_start + self.range_length
+        self.source_range_start + self.range_length - 1
     }
 
     fn destination_range_end(&self) -> u128 {
-        self.destination_range_start + self.range_length
+        self.destination_range_start + self.range_length - 1
     }
 }
 
@@ -100,7 +100,7 @@ fn part_2(input: &str) -> u128 {
             seed_ranges.push((seed, range));
         }
     }
-    // println!("{:?}", seed_ranges);
+    // println!("seed ranges {:?}", seed_ranges);
 
     let mut map: HashMap<&str, Category> = HashMap::new();
     let mut sources: Vec<&str> = Vec::new();
@@ -137,6 +137,8 @@ fn part_2(input: &str) -> u128 {
             ))
         }
     }
+    // println!("{:#?}",  map);
+
     let end = Instant::now();
     let elapsed = end.duration_since(start);
     println!("Parsing time: {:?}", elapsed);
@@ -148,7 +150,7 @@ fn part_2(input: &str) -> u128 {
     let mut total_iteration_count = 0;
 
     for (start, range) in seed_ranges {
-        for seed in start..start + range {
+        for seed in start..start + range - 1 {
             total_iteration_count += 1;
             let mut mapping = seed; // will get converted from seed -> location
             while map.contains_key(source) {
@@ -156,12 +158,13 @@ fn part_2(input: &str) -> u128 {
                 // println!("seed: {seed} cat: {:?}", category);
                 for range in &category.ranges {
                     if range.check_source_overlap(mapping) {
+                        // println!("source overlap found in range {:?}", range);
                         // seed is within one of the ranges, so map it to destination
                         // println!("current mapping {}", mapping);
-                        // println!("{} calibration: {}", category.destination, range.destination_range_start as i128 - range.source_range_start as i128);
+                        // println!("destination/source offset: {}", range.destination_range_start as i128 - range.source_range_start as i128);
                         mapping =
                             mapping + range.destination_range_start - range.source_range_start;
-                        // println!("{} calibrated: {}", category.destination, mapping);
+                        // println!("{} -> {} calibration: {}", source, category.destination, mapping);
                         break;
                     }
                 }
