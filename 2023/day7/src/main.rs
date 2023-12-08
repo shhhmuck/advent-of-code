@@ -148,8 +148,6 @@ fn part_1(input: &str) -> u64 {
         hands.push(hand);
     }
 
-    hands.sort();
-
     let end = Instant::now();
     println!("Parsing time: {:?}", end.duration_since(start));
 
@@ -157,6 +155,7 @@ fn part_1(input: &str) -> u64 {
 
     let start = Instant::now();
 
+    hands.sort();
     let solve = hands
         .iter()
         .enumerate()
