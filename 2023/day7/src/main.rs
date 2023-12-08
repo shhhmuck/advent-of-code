@@ -12,6 +12,7 @@ QQQJA 483\
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug, Hash)]
 enum Card {
+    J,
     Two,
     Three,
     Four,
@@ -21,7 +22,6 @@ enum Card {
     Eight,
     Nine,
     T,
-    J,
     Q,
     K,
     A,
@@ -66,16 +66,27 @@ impl HandKind {
             let count = map.entry(card).or_insert(0);
             *count += 1;
         }
+        let joker_count = map.get(&Card::J).unwrap_or(&0).clone();
         let mut counts: Vec<u8> = map.into_values().collect();
         counts.sort();
-        match counts.as_slice() {
-            [1, 1, 1, 1, 1] => HandKind::HighCard,
-            [1, 1, 1, 2] => HandKind::OnePair,
-            [1, 2, 2] => HandKind::TwoPair,
-            [1, 1, 3] => HandKind::ThreeOfAKind,
-            [2, 3] => HandKind::FullHouse,
-            [1, 4] => HandKind::FourOfAKind,
-            [5] => HandKind::FiveOfAKind,
+        match (counts.as_slice(), joker_count) {
+            ([1, 1, 1, 1, 1], 0) => HandKind::HighCard,
+            ([1, 1, 1, 2], 0) => HandKind::OnePair,
+            ([1, 2, 2], 0) => HandKind::TwoPair,
+            ([1, 1, 3], 0) => HandKind::ThreeOfAKind,
+            ([2, 3], 0) => HandKind::FullHouse,
+            ([1, 4], 0) => HandKind::FourOfAKind,
+            ([5], _) => HandKind::FiveOfAKind,
+            ([1, 1, 1, 1, 1], 1) => HandKind::OnePair,
+            ([1, 1, 1, 2], 1) => HandKind::ThreeOfAKind,
+            ([1, 1, 1, 2], 2) => HandKind::ThreeOfAKind,
+            ([1, 2, 2], 1) => HandKind::FullHouse,
+            ([1, 2, 2], 2) => HandKind::FourOfAKind,
+            ([1, 1, 3], 1) => HandKind::FourOfAKind,
+            ([1, 1, 3], 3) => HandKind::FourOfAKind,
+            ([2, 3], _) => HandKind::FiveOfAKind,
+            ([1, 4], _) => HandKind::FiveOfAKind,
+
             _ => unreachable!(),
         }
     }
@@ -167,4 +178,14 @@ fn part_1(input: &str) -> u64 {
     println!("Processing time: {:?}", end.duration_since(start));
 
     solve
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_1(TEST), 5905);
+    }
 }
