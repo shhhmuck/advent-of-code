@@ -14,6 +14,22 @@ enum PipeKind {
     Start,      // S
 }
 
+impl PipeKind {
+    fn from(c: char) -> Self {
+        match c {
+            '|' => PipeKind::Horizontal,
+            '-' => PipeKind::Vertical,
+            'L' => PipeKind::NorthEast,
+            'J' => PipeKind::NorthWest,
+            '7' => PipeKind::SouthWest,
+            'F' => PipeKind::SouthEast,
+            '.' => PipeKind::Ground,
+            'S' => PipeKind::Start,
+            _ => unreachable!("All characters in the input are handled"),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Pipe {
     row: usize,
@@ -28,30 +44,15 @@ fn main() {
 fn part_1(input: &str) -> u64 {
     let start = Instant::now();
 
-    let mut pipes: Vec<Pipe> = Vec::new();
-
-    input.lines().enumerate().for_each(|(row, l)| {
-        l.chars().enumerate().for_each(|(column, c)| {
-            let kind = match c {
-                '|' => PipeKind::Horizontal,
-                '-' => PipeKind::Vertical,
-                'L' => PipeKind::NorthEast,
-                'J' => PipeKind::NorthWest,
-                '7' => PipeKind::SouthWest,
-                'F' => PipeKind::SouthEast,
-                '.' => PipeKind::Ground,
-                'S' => PipeKind::Start,
-                _ => unreachable!("All characters in the input are handled"),
-            };
-            pipes.push(Pipe { row, column, kind })
-        })
-    });
+    let pipes: Vec<Vec<PipeKind>> = input
+        .lines()
+        .map(|l| l.chars().map(PipeKind::from).collect())
+        .collect();
 
     let end = Instant::now();
     println!("Deserialized in {:?}", end.duration_since(start));
 
-    let start = pipes.iter().find(|&p| p.kind == PipeKind::Start);
-    println!("{:?}", start);
+    println!("{:?}", pipes[4][77]);
 
     0
 }
