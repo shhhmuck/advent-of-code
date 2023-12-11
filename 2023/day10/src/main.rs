@@ -82,75 +82,29 @@ impl Pipe {
         }
     }
 
-    fn walk<'a>(
-        &self,
-        prev: Option<&Pipe>,
-        dir: Direction,
-        pipes: &'a Vec<Vec<Pipe>>,
-    ) -> Option<&'a Self> {
-        match dir {
-            Direction::North => {
-                if self.row != 0 {
-                    let p = &pipes[self.row - 1][self.column];
-                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
-                        && p.kind.can_travel().contains(&Direction::South)
-                    {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-            Direction::East => {
-                if self.column + 1 < pipes[self.row].len() {
-                    let p = &pipes[self.row][self.column + 1];
-                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
-                        && p.kind.can_travel().contains(&Direction::West)
-                    {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-            Direction::South => {
-                if self.row + 1 < pipes.len() {
-                    let p = &pipes[self.row + 1][self.column];
-                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
-                        && p.kind.can_travel().contains(&Direction::North)
-                    {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-            Direction::West => {
-                if self.column != 0 {
-                    let p = &pipes[self.row][self.column - 1];
-                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
-                        && p.kind.can_travel().contains(&Direction::East)
-                    {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-        }
+    fn walk<'a>(&self, prev: &Pipe, pipes: &'a [Vec<Pipe>]) -> &'a Self {
+        let pipes: Vec<&Pipe> = self
+            .kind
+            .can_travel()
+            .iter()
+            .map(|d| match d {
+                Direction::North => &pipes[self.row - 1][self.column],
+                Direction::East => &pipes[self.row][self.column + 1],
+                Direction::South => &pipes[self.row + 1][self.column],
+                Direction::West => &pipes[self.row][self.column - 1],
+            })
+            .collect();
+
+        pipes
+            .iter()
+            .find(|&&p| p != prev)
+            .expect("pipes will be looping and not hit bounds")
     }
 }
 
 fn main() {
-    part_1(INPUT);
+    let solve = part_1(INPUT);
+    println!("Answer: {}", solve);
 }
 
 fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
@@ -174,7 +128,7 @@ fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
 }
 
 fn part_1(input: &str) -> u64 {
-    let mut pipes = deserialize(input);
+    let pipes = deserialize(input);
 
     let mut current_pipe = &pipes[0][0];
     let mut row_idx = 0;
@@ -193,44 +147,70 @@ fn part_1(input: &str) -> u64 {
         row_idx += 1;
     }
 
-    let current_pipe = &mut pipes[current_pipe.row][current_pipe.column];
-    current_pipe.kind = PipeKind::Horizontal;
+    let start = Instant::now();
+    let mut main_loop: Vec<&Pipe> = vec![current_pipe];
 
-    println!("Starting Pipe: {:?}\n", current_pipe); // should be vertical
+    // logic to start the main loop
+    for dir in current_pipe.kind.can_travel() {
+        match dir {
+            Direction::North => {
+                let r = current_pipe.row - 1;
+                if r != 0 {
+                    let p = &pipes[r][current_pipe.column];
+                    if p.kind.can_travel().contains(&Direction::South) {
+                        main_loop.push(p);
+                        break;
+                    }
+                }
+            }
+            Direction::East => {
+                let c = current_pipe.column + 1;
+                if c < pipes[current_pipe.row].len() {
+                    let p = &pipes[current_pipe.row][c];
+                    if p.kind.can_travel().contains(&Direction::West) {
+                        main_loop.push(p);
+                        break;
+                    }
+                }
+            }
+            Direction::South => {
+                let r = current_pipe.row + 1;
+                if r < pipes.len() {
+                    let p = &pipes[r][current_pipe.column];
+                    if p.kind.can_travel().contains(&Direction::North) {
+                        main_loop.push(p);
+                        break;
+                    }
+                }
+            }
+            Direction::West => {
+                let c = current_pipe.column - 1;
+                if c != 0 {
+                    let p = &pipes[current_pipe.row][c];
+                    if p.kind.can_travel().contains(&Direction::East) {
+                        main_loop.push(p);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
+    loop {
+        let p = main_loop[main_loop.len() - 1];
+        if p.is_start {
+            break;
+        }
+        let n = p.walk(main_loop[main_loop.len() - 2], &pipes);
+        main_loop.push(n);
+    }
 
+    let end = Instant::now();
+    println!("Processed in {:?}\n", end.duration_since(start));
 
-    // for dir in current_pipe.kind.can_travel() {
-    //     println!(
-    //         "dir: {:?} -- {:?}",
-    //         dir,
-    //         current_pipe.walk(None, dir, &pipes)
-    //     );
-    // }
+    // println!("loop 1: {:?}", main_loop.len() / 2);
 
-    // let north = current_pipe.walk(Direction::North, &pipes);
-    // let east = current_pipe.walk(Direction::East, &pipes);
-    // let south = current_pipe.walk(Direction::South, &pipes);
-    // let west = current_pipe.walk(Direction::West, &pipes);
-
-    // println!(
-    //     "North: {:?}\nEast: {:?}\nSouth: {:?}\nWest: {:?}",
-    //     north, east, south, west
-    // );
-
-    // let mut path_1: Vec<&Pipe> = vec![
-    //     current_pipe,
-    //     current_pipe.walk(None, Direction::East, &pipes).unwrap(),
-    // ];
-    // let mut path_2: Vec<&Pipe> = vec![
-    //     current_pipe,
-    //     current_pipe.walk(None, Direction::West, &pipes).unwrap(),
-    // ];
-
-    // println!("branch 1 {:?}", path_1);
-    // println!("branch 2 {:?}", path_2);
-
-    0
+    (main_loop.len() / 2) as u64
 }
 
 #[cfg(test)]
@@ -239,7 +219,7 @@ mod tests {
 
     #[test]
     fn test_deser() {
-        let test = "\
+        let input = "\
 |-LJ7F.S
 S.F7JL-|\
 ";
@@ -267,6 +247,32 @@ S.F7JL-|\
             ],
         ];
 
-        assert_eq!(deserialize(test), expected)
+        assert_eq!(deserialize(input), expected)
+    }
+
+    #[test]
+    fn test_part_1_simple() {
+        let input = "\
+.....
+.S-7.
+.|.|.
+.L-J.
+.....\
+";
+
+        assert_eq!(part_1(input), 4);
+    }
+
+    #[test]
+    fn test_part_1_complex() {
+        let input = "\
+..F7.
+.FJ|.
+SJ.L7
+|F--J
+LJ...\
+";
+
+        assert_eq!(part_1(input), 8)
     }
 }
