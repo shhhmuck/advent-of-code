@@ -44,16 +44,21 @@ impl PipeKind {
         }
     }
 
-    fn can_move(&self) -> Option<[Direction; 2]> {
+    fn can_travel(&self) -> Vec<Direction> {
         match self {
-            PipeKind::Vertical => Some([Direction::North, Direction::South]),
-            PipeKind::Horizontal => Some([Direction::East, Direction::West]),
-            PipeKind::NorthEast => Some([Direction::North, Direction::East]),
-            PipeKind::NorthWest => Some([Direction::North, Direction::West]),
-            PipeKind::SouthWest => Some([Direction::South, Direction::West]),
-            PipeKind::SouthEast => Some([Direction::South, Direction::East]),
-            PipeKind::Ground => None,
-            PipeKind::Start => todo!(),
+            PipeKind::Vertical => vec![Direction::North, Direction::South],
+            PipeKind::Horizontal => vec![Direction::East, Direction::West],
+            PipeKind::NorthEast => vec![Direction::North, Direction::East],
+            PipeKind::NorthWest => vec![Direction::North, Direction::West],
+            PipeKind::SouthWest => vec![Direction::South, Direction::West],
+            PipeKind::SouthEast => vec![Direction::South, Direction::East],
+            PipeKind::Start => vec![
+                Direction::North,
+                Direction::East,
+                Direction::South,
+                Direction::West,
+            ],
+            PipeKind::Ground => vec![],
         }
     }
 }
@@ -77,32 +82,65 @@ impl Pipe {
         }
     }
 
-    fn look<'a>(&self, dir: Direction, pipes: &'a Vec<Vec<Pipe>>) -> Option<&'a Self> {
+    fn walk<'a>(
+        &self,
+        prev: Option<&Pipe>,
+        dir: Direction,
+        pipes: &'a Vec<Vec<Pipe>>,
+    ) -> Option<&'a Self> {
         match dir {
             Direction::North => {
                 if self.row != 0 {
-                    Some(&pipes[self.row - 1][self.column])
+                    let p = &pipes[self.row - 1][self.column];
+                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
+                        && p.kind.can_travel().contains(&Direction::South)
+                    {
+                        Some(p)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
             }
             Direction::East => {
                 if self.column + 1 < pipes[self.row].len() {
-                    Some(&pipes[self.row][self.column + 1])
+                    let p = &pipes[self.row][self.column + 1];
+                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
+                        && p.kind.can_travel().contains(&Direction::West)
+                    {
+                        Some(p)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
             }
             Direction::South => {
                 if self.row + 1 < pipes.len() {
-                    Some(&pipes[self.row + 1][self.column])
+                    let p = &pipes[self.row + 1][self.column];
+                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
+                        && p.kind.can_travel().contains(&Direction::North)
+                    {
+                        Some(p)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
             }
             Direction::West => {
                 if self.column != 0 {
-                    Some(&pipes[self.row][self.column - 1])
+                    let p = &pipes[self.row][self.column - 1];
+                    if (prev.is_none() || prev.is_some() && (p != prev.unwrap()))
+                        && p.kind.can_travel().contains(&Direction::East)
+                    {
+                        Some(p)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -112,7 +150,7 @@ impl Pipe {
 }
 
 fn main() {
-    part_1(TEST);
+    part_1(INPUT);
 }
 
 fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
@@ -136,11 +174,11 @@ fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
 }
 
 fn part_1(input: &str) -> u64 {
-    let pipes = deserialize(input);
+    let mut pipes = deserialize(input);
 
     let mut current_pipe = &pipes[0][0];
-
     let mut row_idx = 0;
+
     while row_idx < pipes.len() {
         let row = &pipes[row_idx];
         let mut col_idx = 0;
@@ -155,22 +193,42 @@ fn part_1(input: &str) -> u64 {
         row_idx += 1;
     }
 
-    assert_eq!(current_pipe.kind, PipeKind::Start);
+    let current_pipe = &mut pipes[current_pipe.row][current_pipe.column];
+    current_pipe.kind = PipeKind::Horizontal;
 
-    println!("Starting Pipe: {:?}\n", current_pipe);
+    println!("Starting Pipe: {:?}\n", current_pipe); // should be vertical
 
-    let north = current_pipe.look(Direction::North, &pipes);
-    let east = current_pipe.look(Direction::East, &pipes);
-    let south = current_pipe.look(Direction::South, &pipes);
-    let west = current_pipe.look(Direction::West, &pipes);
 
-    println!(
-        "North: {:?}\nEast: {:?}\nSouth: {:?}\nWest: {:?}",
-        north, east, south, west
-    );
 
-    // let mut path_1: Vec<&Pipe> = vec![current_pipe];
-    // let mut path_2: Vec<&Pipe> = vec![current_pipe];
+    // for dir in current_pipe.kind.can_travel() {
+    //     println!(
+    //         "dir: {:?} -- {:?}",
+    //         dir,
+    //         current_pipe.walk(None, dir, &pipes)
+    //     );
+    // }
+
+    // let north = current_pipe.walk(Direction::North, &pipes);
+    // let east = current_pipe.walk(Direction::East, &pipes);
+    // let south = current_pipe.walk(Direction::South, &pipes);
+    // let west = current_pipe.walk(Direction::West, &pipes);
+
+    // println!(
+    //     "North: {:?}\nEast: {:?}\nSouth: {:?}\nWest: {:?}",
+    //     north, east, south, west
+    // );
+
+    // let mut path_1: Vec<&Pipe> = vec![
+    //     current_pipe,
+    //     current_pipe.walk(None, Direction::East, &pipes).unwrap(),
+    // ];
+    // let mut path_2: Vec<&Pipe> = vec![
+    //     current_pipe,
+    //     current_pipe.walk(None, Direction::West, &pipes).unwrap(),
+    // ];
+
+    // println!("branch 1 {:?}", path_1);
+    // println!("branch 2 {:?}", path_2);
 
     0
 }
