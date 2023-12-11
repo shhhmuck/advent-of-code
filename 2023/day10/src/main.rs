@@ -10,6 +10,14 @@ LJ.LJ\
 ";
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum Direction {
+    North,
+    East,
+    South,
+    West,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum PipeKind {
     Vertical,   // |
     Horizontal, // -
@@ -35,6 +43,19 @@ impl PipeKind {
             _ => unreachable!("All characters in the input are handled"),
         }
     }
+
+    fn can_move(&self) -> Option<[Direction; 2]> {
+        match self {
+            PipeKind::Vertical => Some([Direction::North, Direction::South]),
+            PipeKind::Horizontal => Some([Direction::East, Direction::West]),
+            PipeKind::NorthEast => Some([Direction::North, Direction::East]),
+            PipeKind::NorthWest => Some([Direction::North, Direction::West]),
+            PipeKind::SouthWest => Some([Direction::South, Direction::West]),
+            PipeKind::SouthEast => Some([Direction::South, Direction::East]),
+            PipeKind::Ground => None,
+            PipeKind::Start => todo!(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -42,20 +63,56 @@ struct Pipe {
     row: usize,
     column: usize,
     kind: PipeKind,
+    is_start: bool,
 }
 
 impl Pipe {
     fn from(row: usize, column: usize, c: char) -> Self {
+        let kind = PipeKind::from(c);
         Self {
             row,
             column,
-            kind: PipeKind::from(c),
+            kind,
+            is_start: kind == PipeKind::Start,
+        }
+    }
+
+    fn look<'a>(&self, dir: Direction, pipes: &'a Vec<Vec<Pipe>>) -> Option<&'a Self> {
+        match dir {
+            Direction::North => {
+                if self.row != 0 {
+                    Some(&pipes[self.row - 1][self.column])
+                } else {
+                    None
+                }
+            }
+            Direction::East => {
+                if self.column + 1 < pipes[self.row].len() {
+                    Some(&pipes[self.row][self.column + 1])
+                } else {
+                    None
+                }
+            }
+            Direction::South => {
+                if self.row + 1 < pipes.len() {
+                    Some(&pipes[self.row + 1][self.column])
+                } else {
+                    None
+                }
+            }
+            Direction::West => {
+                if self.column != 0 {
+                    Some(&pipes[self.row][self.column - 1])
+                } else {
+                    None
+                }
+            }
         }
     }
 }
 
 fn main() {
-    part_1(INPUT);
+    part_1(TEST);
 }
 
 fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
@@ -73,13 +130,14 @@ fn deserialize(input: &str) -> Vec<Vec<Pipe>> {
         .collect();
 
     let end = Instant::now();
-    println!("Deserialized in {:?}", end.duration_since(start));
+    println!("Deserialized in {:?}\n", end.duration_since(start));
 
     pipes
 }
 
 fn part_1(input: &str) -> u64 {
     let pipes = deserialize(input);
+
     let mut current_pipe = &pipes[0][0];
 
     let mut row_idx = 0;
@@ -99,10 +157,20 @@ fn part_1(input: &str) -> u64 {
 
     assert_eq!(current_pipe.kind, PipeKind::Start);
 
-    println!("{:?}", pipes[current_pipe.row - 1][current_pipe.column + 1]);
+    println!("Starting Pipe: {:?}\n", current_pipe);
 
-    let mut path_1: Vec<&Pipe> = vec![current_pipe];
-    let mut path_2: Vec<&Pipe> = vec![current_pipe];
+    let north = current_pipe.look(Direction::North, &pipes);
+    let east = current_pipe.look(Direction::East, &pipes);
+    let south = current_pipe.look(Direction::South, &pipes);
+    let west = current_pipe.look(Direction::West, &pipes);
+
+    println!(
+        "North: {:?}\nEast: {:?}\nSouth: {:?}\nWest: {:?}",
+        north, east, south, west
+    );
+
+    // let mut path_1: Vec<&Pipe> = vec![current_pipe];
+    // let mut path_2: Vec<&Pipe> = vec![current_pipe];
 
     0
 }
