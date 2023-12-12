@@ -94,8 +94,6 @@ fn part_2(input: &str, multiplier: usize) -> usize {
 
     // println!("{:?}", keys);
 
-    
-
     let mut shortest_path_sum = 0;
 
     for (name, gal) in &map {
@@ -229,6 +227,24 @@ mod tests {
 ";
 
         assert_eq!(part_1(input), 374)
+    }
+
+    #[test]
+    fn test_part_2_2() {
+        let input = "\
+...#......
+.......#..
+#.........
+..........
+......#...
+.#........
+.........#
+..........
+.......#..
+#...#.....\
+";
+
+        assert_eq!(part_2(input, 2), 374)
     }
 
     #[test]
