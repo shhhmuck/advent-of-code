@@ -22,6 +22,19 @@ L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L\
 ";
 
+const TEST3: &str = "\
+.F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...\
+";
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Direction {
     North,
@@ -131,7 +144,7 @@ impl Pipe {
 fn main() {
     // let solve = part_1(INPUT);
     // println!("Answer: {}", solve);
-    let solve = part_2(INPUT);
+    let solve = part_2(TEST3);
     println!("Answer: {}", solve);
 }
 
@@ -242,7 +255,7 @@ fn part_1(input: &str) -> u64 {
 }
 
 fn part_2(input: &str) -> u64 {
-    let mut pipes = deserialize(input);
+    let pipes = deserialize(input);
 
     let mut current_pipe = &pipes[0][0];
     let mut row_idx = 0;
@@ -321,72 +334,160 @@ fn part_2(input: &str) -> u64 {
 
     // Paint the loop with ~
 
+    // #┍┑┍S┍┑┍┑┍┑┍┑┍┑┍---┑
+    // #|┕┙||||||||||||┍--┙
+    // #┕-┑┕┙┕┙||||||┕┙┕-┑#
+    // ┍--┙┍--┑||┕┙┕┙#┍┑┍┙#
+    // ┕---┙┍-┙┕┙####┍┙┕┙##
+    // ###┍-┙┍---┑###┕┑####
+    // ##┍┙┍┑┕┑┍-┙┍┑##┕---┑
+    // ##┕-┙┕┑||┍┑|┕┑┍-┑┍┑|
+    // #####┍┙|||||┍┙┕┑||┕┙
+    // #####┕-┙┕┙┕┙┕--┙┕┙##
+
+    // .┍----┑┍┑┍┑┍┑┍-┑....
+    // .|┍--┑||||||||┍┙....
+    // .||.┍┙||||||||┕┑....
+    // ┍┙┕┑┕┑┕┙┕┙||┕┙.┕-┑..
+    // ┕--┙.┕┑...┕┙S┑┍-┑┕┑.
+    // ....┍-┙..┍┑┍┙|┕┑┕┑┕┑
+    // ....┕┑.┍┑||┕┑|.┕┑┕┑|
+    // .....|┍┙┕┙|┍┙|┍┑|.┕┙
+    // ....┍┙┕-┑.||.||||...
+    // ....┕---┙.┕┙.┕┙┕┙...
+
     let mut enclosed_count = 0;
 
-    for row in pipes.iter() {
-        let mut is_inside = false;
+    // skip row 1 cuz it cannot be enclosed
+    let mut row_idx = 1;
 
-        for cur_pipe in row {
-            if main_loop.contains(&cur_pipe) {
-                is_inside = !is_inside;
+    while row_idx < pipes.len() {
+        let mut toggle = false;
+        let row = &pipes[row_idx];
+        let mut col_idx = 0;
+        
+        while col_idx < row.len() {
+            println!("coord: ({row_idx},{col_idx}), toggle: {toggle}, enclosed: {enclosed_count}");
 
+            let current_pipe = &row[col_idx];
+
+            if main_loop.contains(&current_pipe) {
+                println!("main loop pipe");
+                let next_idx = col_idx + 1;
+                if current_pipe.kind == PipeKind::Vertical {
+                    // vertical pipe is an edge
+                    toggle = !toggle;
+                    col_idx += 1;
+                } else if next_idx < row.len() {
+                    // TODO: read thru horizontal lines to next angle
+                    // next two pipes make an edge
+                    let peek_pipe = &row[next_idx];
+                    if current_pipe.kind == PipeKind::SouthEast
+                        && peek_pipe.kind == PipeKind::NorthWest
+                        || current_pipe.kind == PipeKind::NorthEast
+                            && peek_pipe.kind == PipeKind::SouthWest
+                    {
+                        toggle = !toggle;
+                        col_idx += 2;                        
+                    } else {
+                        col_idx += 1;
+                    }
+                } else {
+                    // no toggle
+                    col_idx += 1;                   
+                }
                 continue;
             }
 
-            // println!(
-            //     "({},{}) is inside: {is_inside}",
-            //     cur_pipe.row, cur_pipe.column
-            // );
-
-            if cur_pipe.row == 0 || cur_pipe.row == pipes.len() - 1
-                || cur_pipe.column == 0 || cur_pipe.column == pipes[cur_pipe.row].len() - 1
+            // skip counting any 0th or last cols
+            if current_pipe.column == 0 || current_pipe.column == pipes[current_pipe.row].len() - 1
             {
-                // println!("edge: {:?}", cur_pipe);
+                col_idx += 1;
                 continue;
             }
 
-            if is_inside {
+            if toggle {
+                // prev_was_line = false;
+                println!("HELLO");
                 enclosed_count += 1;
             }
+
+            col_idx += 1;
         }
+
+        row_idx += 1;
     }
+
+    // for (row_idx, row) in pipes.iter().enumerate().skip(1) {
+    //     let mut toggle = false;
+
+    //     for (col_idx, cur_pipe) in row.iter().enumerate() {
+    //         println!("enclosed: {enclosed_count}");
+
+    //         if main_loop.contains(&cur_pipe) {
+    //             println!(
+    //                 "coords: {},{} toggle from {toggle} to {}",
+    //                 cur_pipe.row, cur_pipe.column, !toggle
+    //             );
+    //             toggle = !toggle;
+
+    //             continue;
+    //         }
+
+    //         if cur_pipe.column == 0 || cur_pipe.column == pipes[cur_pipe.row].len() - 1 {
+    //             println!(
+    //                 "coords: {},{} is an edge, ignoring",
+    //                 cur_pipe.row, cur_pipe.column
+    //             );
+    //             continue;
+    //         }
+
+    //         if toggle {
+    //             // prev_was_line = false;
+    //             println!("HELLO");
+    //             enclosed_count += 1;
+    //         }
+    //     }
+    // }
 
     let end = Instant::now();
     println!("Processed in {:?}\n", end.duration_since(start));
 
-    
+    // let mut all: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
 
-    let mut all: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
+    // for (r_idx, r) in all.iter_mut().enumerate() {
+    //     for (c_idx, c) in r.iter_mut().enumerate() {
+    //         if !main_loop.contains(&&Pipe {
+    //             row: r_idx,
+    //             column: c_idx,
+    //             kind: PipeKind::from(*c),
+    //             is_start: PipeKind::from(*c) == PipeKind::Start,
+    //         }) {
+    //             *c = '.';
+    //         }
+    //     }
+    // }
 
-    for (r_idx, r) in all.iter_mut().enumerate() {
-        for (c_idx, c) in  r.iter_mut().enumerate() {
-            if !main_loop.contains(&&Pipe { row: r_idx, column: c_idx, kind: PipeKind::from(*c), is_start: PipeKind::from(*c) ==PipeKind::Start}) {
-                *c = ' ';
-            }
-        }
-    }
+    // for pipe in &main_loop {
+    //     all[pipe.row][pipe.column] = PipeKind::from(all[pipe.row][pipe.column]).as_char();
+    // }
 
-    for pipe in &main_loop {
-        all[pipe.row][pipe.column] = PipeKind::from(all[pipe.row][pipe.column]).as_char();
-    };
+    // let mut s: String = String::new();
 
-    let mut s: String = String::new();
+    // for l in all {
+    //     for c in l {
+    //         s.push(c);
+    //     }
+    //     s.push('\n');
+    // }
 
-    for l in all {
-        for c in l {
-            s.push(c);
-        }
-        s.push('\n');
-    }
-
-    println!("{}", s);
+    // println!("{}", s);
 
     enclosed_count
 
     // for (row_idx, row) in all.iter().enumerate() {
     //     for (col_idx, col) in row.iter().enumerate() {
     //         // println!("{:?}", all[row_idx][col_idx]);
-
     //         // is main loop
     //         if *col == '0' {
     //             continue;
@@ -399,9 +500,7 @@ fn part_2(input: &str) -> u64 {
     //         {
     //             continue;
     //         }
-
     //         let mut escaped = false;
-
     //         // north
     //         for i in (0..=row_idx - 1).rev() {
     //             if all[i][col_idx] == '0' {
@@ -412,7 +511,6 @@ fn part_2(input: &str) -> u64 {
     //         if !escaped {
     //             continue;
     //         }
-
     //         // south
     //         for i in row_idx + 1..all.len() {
     //             if all[i][col_idx] == '0' {
@@ -423,7 +521,6 @@ fn part_2(input: &str) -> u64 {
     //         if !escaped {
     //             continue;
     //         }
-
     //         // east
     //         for i in col_idx + 1..all[row_idx].len() {
     //             if all[row_idx][i] == '0' {
@@ -434,7 +531,6 @@ fn part_2(input: &str) -> u64 {
     //         if !escaped {
     //             continue;
     //         }
-
     //         // west
     //         for i in (0..=col_idx - 1).rev() {
     //             if all[row_idx][i] == '0' {
@@ -446,11 +542,8 @@ fn part_2(input: &str) -> u64 {
     //             continue;
     //         }
     //     }
-
     //     enclosed += 1;
     // }
-
-
 }
 
 #[cfg(test)]
@@ -549,16 +642,16 @@ L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L\
 ";
 
-// #┍┑┍S┍┑┍┑┍┑┍┑┍┑┍---┑
-// #|┕┙||||||||||||┍--┙
-// #┕-┑┕┙┕┙||||||┕┙┕-┑#
-// ┍--┙┍--┑||┕┙┕┙#┍┑┍┙#
-// ┕---┙┍-┙┕┙####┍┙┕┙##
-// ###┍-┙┍---┑###┕┑####
-// ##┍┙┍┑┕┑┍-┙┍┑##┕---┑
-// ##┕-┙┕┑||┍┑|┕┑┍-┑┍┑|
-// #####┍┙|||||┍┙┕┑||┕┙
-// #####┕-┙┕┙┕┙┕--┙┕┙##
+        // #┍┑┍S┍┑┍┑┍┑┍┑┍┑┍---┑
+        // #|┕┙||||||||||||┍--┙
+        // #┕-┑┕┙┕┙||||||┕┙┕-┑#
+        // ┍--┙┍--┑||┕┙┕┙#┍┑┍┙#
+        // ┕---┙┍-┙┕┙####┍┙┕┙##
+        // ###┍-┙┍---┑###┕┑####
+        // ##┍┙┍┑┕┑┍-┙┍┑##┕---┑
+        // ##┕-┙┕┑||┍┑|┕┑┍-┑┍┑|
+        // #####┍┙|||||┍┙┕┑||┕┙
+        // #####┕-┙┕┙┕┙┕--┙┕┙##
 
         assert_eq!(part_2(input), 10)
     }
