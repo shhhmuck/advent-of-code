@@ -144,7 +144,7 @@ impl Pipe {
 fn main() {
     // let solve = part_1(INPUT);
     // println!("Answer: {}", solve);
-    let solve = part_2(TEST3);
+    let solve = part_2(INPUT);
     println!("Answer: {}", solve);
 }
 
@@ -330,85 +330,52 @@ fn part_2(input: &str) -> u64 {
         main_loop.push(n);
     }
 
-    // println!("loop 1: {:?}", main_loop.len() / 2);
-
-    // Paint the loop with ~
-
-    // #┍┑┍S┍┑┍┑┍┑┍┑┍┑┍---┑
-    // #|┕┙||||||||||||┍--┙
-    // #┕-┑┕┙┕┙||||||┕┙┕-┑#
-    // ┍--┙┍--┑||┕┙┕┙#┍┑┍┙#
-    // ┕---┙┍-┙┕┙####┍┙┕┙##
-    // ###┍-┙┍---┑###┕┑####
-    // ##┍┙┍┑┕┑┍-┙┍┑##┕---┑
-    // ##┕-┙┕┑||┍┑|┕┑┍-┑┍┑|
-    // #####┍┙|||||┍┙┕┑||┕┙
-    // #####┕-┙┕┙┕┙┕--┙┕┙##
-
-    // .┍----┑┍┑┍┑┍┑┍-┑....
-    // .|┍--┑||||||||┍┙....
-    // .||.┍┙||||||||┕┑....
-    // ┍┙┕┑┕┑┕┙┕┙||┕┙.┕-┑..
-    // ┕--┙.┕┑...┕┙S┑┍-┑┕┑.
-    // ....┍-┙..┍┑┍┙|┕┑┕┑┕┑
-    // ....┕┑.┍┑||┕┑|.┕┑┕┑|
-    // .....|┍┙┕┙|┍┙|┍┑|.┕┙
-    // ....┍┙┕-┑.||.||||...
-    // ....┕---┙.┕┙.┕┙┕┙...
-
     let mut enclosed_count = 0;
-
-    // skip row 1 cuz it cannot be enclosed
     let mut row_idx = 1;
-
     while row_idx < pipes.len() {
         let mut toggle = false;
+
         let row = &pipes[row_idx];
         let mut col_idx = 0;
-        
         while col_idx < row.len() {
-            println!("coord: ({row_idx},{col_idx}), toggle: {toggle}, enclosed: {enclosed_count}");
-
+            // println!("coord: ({row_idx},{col_idx}), toggle: {toggle}, enclosed: {enclosed_count}");
             let current_pipe = &row[col_idx];
-
             if main_loop.contains(&current_pipe) {
-                println!("main loop pipe");
-                let next_idx = col_idx + 1;
+                // println!("main loop pipe");
                 if current_pipe.kind == PipeKind::Vertical {
                     // vertical pipe is an edge
                     toggle = !toggle;
                     col_idx += 1;
-                } else if next_idx < row.len() {
-                    // TODO: read thru horizontal lines to next angle
-                    // next two pipes make an edge
-                    let peek_pipe = &row[next_idx];
-                    if current_pipe.kind == PipeKind::SouthEast
+                    continue;
+                }
+                let mut next = col_idx + 1;
+                while next < row.len() {
+                    let peek_pipe = &row[next];
+                    if [PipeKind::Horizontal, PipeKind::Start].contains(&peek_pipe.kind) {
+                        next += 1;
+                        continue;
+                    } else if current_pipe.kind == PipeKind::SouthEast
                         && peek_pipe.kind == PipeKind::NorthWest
                         || current_pipe.kind == PipeKind::NorthEast
                             && peek_pipe.kind == PipeKind::SouthWest
                     {
                         toggle = !toggle;
-                        col_idx += 2;                        
+                        col_idx = next + 1;
+                        break;
                     } else {
-                        col_idx += 1;
+                        col_idx = next + 1;
+                        break;
                     }
-                } else {
-                    // no toggle
-                    col_idx += 1;                   
                 }
                 continue;
             }
-
             // skip counting any 0th or last cols
-            if current_pipe.column == 0 || current_pipe.column == pipes[current_pipe.row].len() - 1
-            {
+            if col_idx == 0 || col_idx == pipes[current_pipe.row].len() - 1 {
                 col_idx += 1;
                 continue;
             }
 
             if toggle {
-                // prev_was_line = false;
-                println!("HELLO");
                 enclosed_count += 1;
             }
 
@@ -418,43 +385,13 @@ fn part_2(input: &str) -> u64 {
         row_idx += 1;
     }
 
-    // for (row_idx, row) in pipes.iter().enumerate().skip(1) {
-    //     let mut toggle = false;
-
-    //     for (col_idx, cur_pipe) in row.iter().enumerate() {
-    //         println!("enclosed: {enclosed_count}");
-
-    //         if main_loop.contains(&cur_pipe) {
-    //             println!(
-    //                 "coords: {},{} toggle from {toggle} to {}",
-    //                 cur_pipe.row, cur_pipe.column, !toggle
-    //             );
-    //             toggle = !toggle;
-
-    //             continue;
-    //         }
-
-    //         if cur_pipe.column == 0 || cur_pipe.column == pipes[cur_pipe.row].len() - 1 {
-    //             println!(
-    //                 "coords: {},{} is an edge, ignoring",
-    //                 cur_pipe.row, cur_pipe.column
-    //             );
-    //             continue;
-    //         }
-
-    //         if toggle {
-    //             // prev_was_line = false;
-    //             println!("HELLO");
-    //             enclosed_count += 1;
-    //         }
-    //     }
-    // }
-
     let end = Instant::now();
     println!("Processed in {:?}\n", end.duration_since(start));
 
-    // let mut all: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
+    enclosed_count
 
+    // Paint and reprint the grid with different characters
+    // let mut all: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
     // for (r_idx, r) in all.iter_mut().enumerate() {
     //     for (c_idx, c) in r.iter_mut().enumerate() {
     //         if !main_loop.contains(&&Pipe {
@@ -467,83 +404,17 @@ fn part_2(input: &str) -> u64 {
     //         }
     //     }
     // }
-
     // for pipe in &main_loop {
     //     all[pipe.row][pipe.column] = PipeKind::from(all[pipe.row][pipe.column]).as_char();
     // }
-
     // let mut s: String = String::new();
-
     // for l in all {
     //     for c in l {
     //         s.push(c);
     //     }
     //     s.push('\n');
-    // }
-
+    //
     // println!("{}", s);
-
-    enclosed_count
-
-    // for (row_idx, row) in all.iter().enumerate() {
-    //     for (col_idx, col) in row.iter().enumerate() {
-    //         // println!("{:?}", all[row_idx][col_idx]);
-    //         // is main loop
-    //         if *col == '0' {
-    //             continue;
-    //         }
-    //         // edges can't be enclosed
-    //         if row_idx == 0
-    //             || row_idx == all.len() - 1
-    //             || col_idx == 0
-    //             || col_idx == all[row_idx].len() - 1
-    //         {
-    //             continue;
-    //         }
-    //         let mut escaped = false;
-    //         // north
-    //         for i in (0..=row_idx - 1).rev() {
-    //             if all[i][col_idx] == '0' {
-    //                 break;
-    //             }
-    //             escaped = true;
-    //         }
-    //         if !escaped {
-    //             continue;
-    //         }
-    //         // south
-    //         for i in row_idx + 1..all.len() {
-    //             if all[i][col_idx] == '0' {
-    //                 break;
-    //             }
-    //             escaped = true;
-    //         }
-    //         if !escaped {
-    //             continue;
-    //         }
-    //         // east
-    //         for i in col_idx + 1..all[row_idx].len() {
-    //             if all[row_idx][i] == '0' {
-    //                 break;
-    //             }
-    //             escaped = true;
-    //         }
-    //         if !escaped {
-    //             continue;
-    //         }
-    //         // west
-    //         for i in (0..=col_idx - 1).rev() {
-    //             if all[row_idx][i] == '0' {
-    //                 break;
-    //             }
-    //             escaped = true;
-    //         }
-    //         if !escaped {
-    //             continue;
-    //         }
-    //     }
-    //     enclosed += 1;
-    // }
 }
 
 #[cfg(test)]
