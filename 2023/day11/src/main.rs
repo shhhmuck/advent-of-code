@@ -48,6 +48,8 @@ fn part_2(input: &str, multiplier: usize) -> usize {
     let end = Instant::now();
     println!("Deserialized in {:?}", end.duration_since(start));
 
+    let start = Instant::now();
+
     let mut map: HashMap<usize, Galaxy> = HashMap::new();
     let mut keys: Vec<usize> = Vec::new();
 
@@ -92,7 +94,7 @@ fn part_2(input: &str, multiplier: usize) -> usize {
 
     // println!("{:?}", keys);
 
-    let start = Instant::now();
+    
 
     let mut shortest_path_sum = 0;
 
