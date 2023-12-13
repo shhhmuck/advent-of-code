@@ -47,6 +47,7 @@ fn find_column_mirror(pattern_grid: &Vec<Vec<char>>) -> usize {
     for row in pattern_grid {
         let mut col_idx = 1;
         while col_idx < row.len() {
+            // TODO: fix this range implementation to get the right nums
             let (left_range, right_range) = if col_idx <= middle_index {
                 ((0..col_idx).rev(), col_idx..col_idx + col_idx - 0)
             } else {
