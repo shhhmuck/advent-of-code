@@ -81,19 +81,22 @@ fn slide_north(thing_grid: &mut [Vec<Thing>]) {
 
 fn part_1(input: &str) -> usize {
     let mut thing_grid = deserialize(input);
-
-    for things in &thing_grid {
-        println!("{things:?}");
-    }
-    println!();
-
     slide_north(&mut thing_grid);
+    let load = thing_grid
+        .iter()
+        .enumerate()
+        .map(|(row_idx, row)| {
+            let mut load = 0;
+            row.iter().for_each(|&c| {
+                if c == Thing::Rock {
+                    load += thing_grid.len() - row_idx
+                }
+            });
+            load
+        })
+        .sum::<usize>();
 
-    for things in &thing_grid {
-        println!("{things:?}");
-    }
-
-    usize::MIN
+    load
 }
 
 #[cfg(test)]
