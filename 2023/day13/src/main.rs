@@ -18,27 +18,10 @@ const TEST: &str = "\
 ..##..###
 #....#..#\
 ";
-const TEST2: &str = "\
-..##..##.
-..#.##.#.
-##......#
-##......#
-..#.##.#.
-..##..##.
-#.#.##.#.
-
-#...##..#
-#...##..#
-..##..###
-#####.##.
-#####.##.
-..##..###
-#....#..#\
-";
 
 fn main() {
-    let solve = part_1(INPUT);
-    println!("ANS: {solve}");
+    let ans = solve(INPUT);
+    println!("ANS: {ans}");
 }
 
 fn deser(input: &str) -> Vec<Vec<Vec<char>>> {
@@ -66,7 +49,7 @@ fn find_row_mirror(pattern_grid: &[Vec<char>]) -> usize {
 
     while row_idx < pattern_len {
         let d = pattern_len - row_idx;
-        let (left, right) = if row_idx <= middle_index {
+        let (up, down) = if row_idx <= middle_index {
             ((0, row_idx), (row_idx, row_idx + row_idx))
         } else {
             (
@@ -75,21 +58,26 @@ fn find_row_mirror(pattern_grid: &[Vec<char>]) -> usize {
             )
         };
 
-        let mut col_idx = 0;
         let mut is_mirror = true;
-        while col_idx < pattern_grid[row_idx].len() {
-            for (left, right) in zip((left.0..left.1).rev(), right.0..right.1) {
-                let up = pattern_grid[left][col_idx];
-                let down = pattern_grid[right][col_idx];
-                if up != down {
-                    is_mirror = false;
-                    break;
-                }
+        let mut smudge_count = 0;
+
+        for (u, d) in zip((up.0..up.1).rev(), down.0..down.1) {
+            let up = pattern_grid[u].iter().collect::<String>();
+            let down = pattern_grid[d].iter().collect::<String>();
+
+            if up == down {
+                continue;
             }
-            col_idx += 1;
+            if one_char_apart(&up, &down) {
+                smudge_count += 1;
+                continue;
+            }
+
+            is_mirror = false;
+            break;
         }
 
-        if is_mirror {
+        if is_mirror && smudge_count == 1 {
             mirror_rows.push(row_idx);
         }
         row_idx += 1;
@@ -115,25 +103,41 @@ fn find_column_mirror(pattern_grid: &[Vec<char>]) -> usize {
                 (col_idx, col_idx + d),
             )
         };
-        if pattern_grid.iter().all(|row| {
-            for (left, right) in zip((left.0..left.1).rev(), right.0..right.1) {
-                let l = row[left];
-                let r = row[right];
-                if l != r {
-                    return false;
-                }
+
+        let mut is_mirror = true;
+        let mut smudge_count = 0;
+
+        for (left, right) in zip((left.0..left.1).rev(), right.0..right.1) {
+            let mut left_str = String::new();
+            let mut right_str = String::new();
+
+            pattern_grid.iter().for_each(|r| {
+                left_str.push(r[left]);
+                right_str.push(r[right]);
+            });
+
+            if left_str == right_str {
+                continue;
             }
-            true
-        }) {
+            if one_char_apart(&left_str, &right_str) {
+                smudge_count += 1;
+                continue;
+            }
+            is_mirror = false;
+            break;
+        }
+
+        if is_mirror && smudge_count == 1 {
             mirror_cols.push(col_idx);
         }
+
         col_idx += 1;
     }
 
     mirror_cols.iter().sum::<usize>()
 }
 
-fn part_1(input: &str) -> usize {
+fn solve(input: &str) -> usize {
     let mut total = 0;
 
     let pattern_grids = deser(input);
@@ -141,7 +145,11 @@ fn part_1(input: &str) -> usize {
     let start = Instant::now();
 
     for pattern_grid in pattern_grids {
-        total += find_row_mirror(&pattern_grid);
+        let row = find_row_mirror(&pattern_grid);
+        if row != 0 {
+            total += row;
+            continue;
+        }
         total += find_column_mirror(&pattern_grid);
     }
 
@@ -151,12 +159,28 @@ fn part_1(input: &str) -> usize {
     total
 }
 
+fn one_char_apart(str1: &str, str2: &str) -> bool {
+    if str1.len() != str2.len() {
+        return false;
+    }
+    let mut diff_count = 0;
+    for (char1, char2) in str1.chars().zip(str2.chars()) {
+        if char1 != char2 {
+            diff_count += 1;
+            if diff_count > 1 {
+                return false;
+            }
+        }
+    }
+    diff_count == 1
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_part_1() {
-        assert_eq!(part_1(TEST2), 400);
+    fn test_solve() {
+        assert_eq!(solve(TEST2), 405);
     }
 }
