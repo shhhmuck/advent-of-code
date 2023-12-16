@@ -16,6 +16,8 @@ O.#..O.#.#
 #....###..
 #OO..#....";
 
+const ITERATIONS: usize = 1_000_000_000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Thing {
     Rock,
@@ -44,7 +46,7 @@ impl Thing {
 
 fn main() {
     // let solve = part_1(INPUT);
-    let solve = part_2(TEST);
+    let solve = part_2(INPUT);
     println!("{solve}");
 }
 
@@ -56,31 +58,54 @@ fn part_1(input: &str) -> usize {
 
 fn part_2(input: &str) -> usize {
     let mut thing_grid = deserialize(input);
-    let mut map: HashMap<String, usize> = HashMap::new();
 
-    for i in 0..=1000000000 {
-        let load = cycle(&mut thing_grid);
+    let start = Instant::now();
 
-        for thing in &thing_grid {
-            println!("{thing:?}");
-        }
+    let mut map: HashMap<String, usize> = HashMap::with_capacity(1);
+    let mut cycle_len = 0;
+    let mut i = 0;
 
+    loop {
+        cycle(&mut thing_grid);
         let hash: String = thing_grid
             .iter()
             .map(|r| r.iter().map(Thing::as_char).collect::<String>())
             .collect();
-
         match map.entry(hash) {
             Entry::Occupied(entry) => {
-                println!("Already seen this cycle! INDEX: {i} HASH: {} LOAD: {load}", entry.key());
+                cycle_len = i - entry.get();
+                // println!("INDEX: {i} CYCLE_LEN {cycle_len}");
+                break;
             }
             Entry::Vacant(entry) => {
-                entry.insert(load);
+                entry.insert(i);
             }
         }
+        i += 1;
     }
 
-    usize::MIN
+    let position = get_position_in_cycle(ITERATIONS, i, cycle_len);
+    // println!("cycle position: {position}");
+
+    for _ in 0..position - 1 {
+        cycle(&mut thing_grid);
+    }
+
+    let load = calculate_load(&thing_grid);
+
+    let end = Instant::now();
+    println!("Processed in {:?}", end.duration_since(start));
+
+    load
+}
+
+fn get_position_in_cycle(
+    target_iteration: usize,
+    relative_position: usize,
+    cycle_len: usize,
+) -> usize {
+    let relative = target_iteration.wrapping_sub(relative_position);
+    relative % cycle_len
 }
 
 fn deserialize(input: &str) -> Vec<Vec<Thing>> {
@@ -95,12 +120,11 @@ fn deserialize(input: &str) -> Vec<Vec<Thing>> {
     deser
 }
 
-fn cycle(thing_grid: &mut [Vec<Thing>]) -> usize {
+fn cycle(thing_grid: &mut [Vec<Thing>]) {
     slide_north(thing_grid);
     slide_west(thing_grid);
     slide_south(thing_grid);
     slide_east(thing_grid);
-    calculate_load(thing_grid)
 }
 
 fn calculate_load(thing_grid: &[Vec<Thing>]) -> usize {
