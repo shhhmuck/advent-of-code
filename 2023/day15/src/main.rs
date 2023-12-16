@@ -19,7 +19,7 @@ fn part_1(input: &str) -> usize {
 
 fn part_2(input: &str) -> usize {
     let s = Instant::now();
-    let mut map: HashMap<usize, Vec<String>> = HashMap::new();
+    let mut map: HashMap<usize, Vec<String>> = HashMap::with_capacity(225);
     for s in input.split(',') {
         let mut operation = '.';
         let (label, focal_length) = s
