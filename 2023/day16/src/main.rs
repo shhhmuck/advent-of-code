@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 const INPUT: &str = include_str!("./input.txt");
 const TEST: &str = r".|...\....
 |.-.\.....
@@ -56,92 +58,62 @@ impl Kind {
 struct Tile {
     is_energized: bool,
     kind: Kind,
-    coordinates: (usize, usize),
+    pos: (usize, usize),
 }
 
 #[derive(Debug)]
 struct Beam {
     complete: bool,
-    row: isize,
-    col: isize,
+    pos: (isize, isize),
     dir: Direction,
-    tiles: Vec<Tile>
+}
+
+impl Default for Beam {
+    fn default() -> Self {
+        Self {
+            complete: false,
+            pos: (0, -1),
+            dir: Direction::default(),
+        }
+    }
 }
 
 fn main() {
-    println!("{}", part_1(TEST));
-}
-
-fn deserialize(input: &str) -> Vec<Vec<Tile>> {
-    input
-        .lines()
-        .enumerate()
-        .map(|(row_idx, r)| {
-            r.chars()
-                .enumerate()
-                .map(|(col_idx, c)| Tile {
-                    is_energized: false,
-                    kind: Kind::from_char(c),
-                    coordinates: (row_idx, col_idx),
-                })
-                .collect()
-        })
-        .collect()
+    println!("{}", part_1(INPUT));
 }
 
 fn part_1(input: &str) -> usize {
     let mut grid = deserialize(input);
-    let mut beams = vec![Beam {
-        complete: false,
-        row: 0,
-        col: -1,
-        dir: Direction::default(),
-        tiles: Vec::new(),
-    }];
+
+    let s = Instant::now();
+
+    let mut beams = vec![Beam::default()];
     let mut new_beams = Vec::new();
 
     loop {
-        beams.retain(|b| !b.complete);
-        if beams.len() == 0 {
+        if beams.is_empty() {
             break;
         }
-        
 
         for beam in &mut beams {
-            println!("{beam:?}\n");
             let offset = beam.dir.offset();
 
-            beam.row = beam.row + offset.0;
-            beam.col = beam.col + offset.1;
+            beam.pos.0 += offset.0;
+            beam.pos.1 += offset.1;
 
-            if beam.row < 0 || beam.row >= grid.len() as isize {
+            if beam.pos.0 < 0 || beam.pos.0 >= grid.len() as isize {
                 beam.complete = true;
                 break;
             }
+            let row_idx = beam.pos.0 as usize;
 
-            let row_idx = beam.row as usize;
-
-            if beam.col < 0 || beam.col >= grid[row_idx].len() as isize {
+            if beam.pos.1 < 0 || beam.pos.1 >= grid[row_idx].len() as isize {
                 beam.complete = true;
                 break;
             }
+            let col_idx = beam.pos.1 as usize;
 
-            let col_idx = beam.col as usize;
-
-            let tile = &mut grid[row_idx][col_idx];
-
-            // beam is cycling
-            if beam.tiles.contains(tile) {
-                println!("cycling, beam complete");
-                beam.complete = true;
-                break;
-            }
-
-            beam.tiles.push(tile.clone());
-            // println!("{tile:?}");
-
-            tile.is_energized = true;
-            match tile.kind {
+            match grid[row_idx][col_idx].kind {
                 Kind::Space => {}
                 Kind::RightMirror => match beam.dir {
                     Direction::Up => beam.dir = Direction::Right,
@@ -157,14 +129,19 @@ fn part_1(input: &str) -> usize {
                 },
                 Kind::HorizontalSplitter => match beam.dir {
                     Direction::Up | Direction::Down => {
-                        new_beams.push(Beam {
-                            complete: false,
-                            row: beam.row,
-                            col: beam.col,
-                            tiles: vec![tile.clone()],
-                            dir: Direction::Right,
-                        });
-                        beam.dir = Direction::Left
+                        if !grid[row_idx][col_idx].is_energized {
+                            new_beams.push(Beam {
+                                complete: false,
+                                pos: beam.pos,
+                                dir: Direction::Right,
+                            });
+                            new_beams.push(Beam {
+                                complete: false,
+                                pos: beam.pos,
+                                dir: Direction::Left,
+                            });
+                        }
+                        beam.complete = true;
                     }
                     Direction::Left => {}
                     Direction::Right => {}
@@ -173,19 +150,28 @@ fn part_1(input: &str) -> usize {
                     Direction::Up => {}
                     Direction::Down => {}
                     Direction::Left | Direction::Right => {
-                        new_beams.push(Beam {
-                            complete: false,
-                            row: beam.row,
-                            col: beam.col,
-                            tiles: vec![tile.clone()],
-                            dir: Direction::Up,
-                        });
-                        beam.dir = Direction::Down
+                        if !grid[row_idx][col_idx].is_energized {
+                            new_beams.push(Beam {
+                                complete: false,
+                                pos: beam.pos,
+                                dir: Direction::Up,
+                            });
+                            new_beams.push(Beam {
+                                complete: false,
+                                pos: beam.pos,
+                                dir: Direction::Down,
+                            });
+                        }
+                        beam.complete = true;
                     }
                 },
             }
+            grid[row_idx][col_idx].is_energized = true;
         }
-        beams.extend(new_beams.drain(..))
+        beams.retain(|b| !b.complete);
+        beams.append(&mut new_beams);
+
+        // println!("BEAMS: {beams:?}");
     }
 
     let mut count = 0;
@@ -197,5 +183,30 @@ fn part_1(input: &str) -> usize {
         }
     }
 
+    let e = Instant::now();
+    println!("Processed in {:?}", e.duration_since(s));
+
     count
+}
+
+fn deserialize(input: &str) -> Vec<Vec<Tile>> {
+    let s = Instant::now();
+    let grid = input
+        .lines()
+        .enumerate()
+        .map(|(row_idx, r)| {
+            r.chars()
+                .enumerate()
+                .map(|(col_idx, c)| Tile {
+                    is_energized: false,
+                    kind: Kind::from_char(c),
+                    pos: (row_idx, col_idx),
+                })
+                .collect()
+        })
+        .collect();
+    let e = Instant::now();
+    println!("Deserialized in {:?}", e.duration_since(s));
+
+    grid
 }
