@@ -79,7 +79,8 @@ impl Default for Beam {
 }
 
 fn main() {
-    println!("{}", part_1(INPUT));
+    // println!("{}", part_1(INPUT));
+    println!("{}", part_2(INPUT));
 }
 
 fn part_1(input: &str) -> usize {
@@ -187,6 +188,454 @@ fn part_1(input: &str) -> usize {
     println!("Processed in {:?}", e.duration_since(s));
 
     count
+}
+
+fn part_2(input: &str) -> usize {
+    let s = Instant::now();
+    let mut biggest = 0;
+
+    let g = deserialize(input);
+
+    // right side
+    for i in 0..g.len() {
+        let mut grid = g.clone();
+
+        let mut beams = vec![Beam {
+            complete: false,
+            pos: (i as isize, (grid[i].len()) as isize),
+            dir: Direction::Left,
+        }];
+        let mut new_beams = Vec::new();
+
+        loop {
+            if beams.is_empty() {
+                break;
+            }
+
+            for beam in &mut beams {
+                let offset = beam.dir.offset();
+
+                beam.pos.0 += offset.0;
+                beam.pos.1 += offset.1;
+
+                if beam.pos.0 < 0 || beam.pos.0 >= grid.len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let row_idx = beam.pos.0 as usize;
+
+                if beam.pos.1 < 0 || beam.pos.1 >= grid[row_idx].len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let col_idx = beam.pos.1 as usize;
+
+                match grid[row_idx][col_idx].kind {
+                    Kind::Space => {}
+                    Kind::RightMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Right,
+                        Direction::Down => beam.dir = Direction::Left,
+                        Direction::Left => beam.dir = Direction::Down,
+                        Direction::Right => beam.dir = Direction::Up,
+                    },
+                    Kind::LeftMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Left,
+                        Direction::Down => beam.dir = Direction::Right,
+                        Direction::Left => beam.dir = Direction::Up,
+                        Direction::Right => beam.dir = Direction::Down,
+                    },
+                    Kind::HorizontalSplitter => match beam.dir {
+                        Direction::Up | Direction::Down => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Right,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Left,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                        Direction::Left => {}
+                        Direction::Right => {}
+                    },
+                    Kind::VerticalSplitter => match beam.dir {
+                        Direction::Up => {}
+                        Direction::Down => {}
+                        Direction::Left | Direction::Right => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Up,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Down,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                    },
+                }
+                grid[row_idx][col_idx].is_energized = true;
+            }
+            beams.retain(|b| !b.complete);
+            beams.append(&mut new_beams);
+
+            // println!("BEAMS: {beams:?}");
+        }
+
+        let mut count = 0;
+        for row in grid {
+            for tile in row {
+                if tile.is_energized {
+                    count += 1;
+                }
+            }
+        }
+
+        if count > biggest {
+            biggest = count;
+        }
+    }
+
+    // left side
+    for i in 0..g.len() {
+        let mut grid = g.clone();
+
+        let mut beams = vec![Beam {
+            complete: false,
+            pos: (i as isize, -1),
+            dir: Direction::Right,
+        }];
+        let mut new_beams = Vec::new();
+
+        loop {
+            if beams.is_empty() {
+                break;
+            }
+
+            for beam in &mut beams {
+                let offset = beam.dir.offset();
+
+                beam.pos.0 += offset.0;
+                beam.pos.1 += offset.1;
+
+                if beam.pos.0 < 0 || beam.pos.0 >= grid.len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let row_idx = beam.pos.0 as usize;
+
+                if beam.pos.1 < 0 || beam.pos.1 >= grid[row_idx].len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let col_idx = beam.pos.1 as usize;
+
+                match grid[row_idx][col_idx].kind {
+                    Kind::Space => {}
+                    Kind::RightMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Right,
+                        Direction::Down => beam.dir = Direction::Left,
+                        Direction::Left => beam.dir = Direction::Down,
+                        Direction::Right => beam.dir = Direction::Up,
+                    },
+                    Kind::LeftMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Left,
+                        Direction::Down => beam.dir = Direction::Right,
+                        Direction::Left => beam.dir = Direction::Up,
+                        Direction::Right => beam.dir = Direction::Down,
+                    },
+                    Kind::HorizontalSplitter => match beam.dir {
+                        Direction::Up | Direction::Down => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Right,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Left,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                        Direction::Left => {}
+                        Direction::Right => {}
+                    },
+                    Kind::VerticalSplitter => match beam.dir {
+                        Direction::Up => {}
+                        Direction::Down => {}
+                        Direction::Left | Direction::Right => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Up,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Down,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                    },
+                }
+                grid[row_idx][col_idx].is_energized = true;
+            }
+            beams.retain(|b| !b.complete);
+            beams.append(&mut new_beams);
+
+            // println!("BEAMS: {beams:?}");
+        }
+
+        let mut count = 0;
+        for row in grid {
+            for tile in row {
+                if tile.is_energized {
+                    count += 1;
+                }
+            }
+        }
+
+        if count > biggest {
+            biggest = count;
+        }
+    }
+
+    // top
+    for i in 0..g[0].len() {
+        let mut grid = g.clone();
+
+        let mut beams = vec![Beam {
+            complete: false,
+            pos: (-1, i as isize),
+            dir: Direction::Down,
+        }];
+        let mut new_beams = Vec::new();
+
+        loop {
+            if beams.is_empty() {
+                break;
+            }
+
+            for beam in &mut beams {
+                let offset = beam.dir.offset();
+
+                beam.pos.0 += offset.0;
+                beam.pos.1 += offset.1;
+
+                if beam.pos.0 < 0 || beam.pos.0 >= grid.len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let row_idx = beam.pos.0 as usize;
+
+                if beam.pos.1 < 0 || beam.pos.1 >= grid[row_idx].len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let col_idx = beam.pos.1 as usize;
+
+                match grid[row_idx][col_idx].kind {
+                    Kind::Space => {}
+                    Kind::RightMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Right,
+                        Direction::Down => beam.dir = Direction::Left,
+                        Direction::Left => beam.dir = Direction::Down,
+                        Direction::Right => beam.dir = Direction::Up,
+                    },
+                    Kind::LeftMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Left,
+                        Direction::Down => beam.dir = Direction::Right,
+                        Direction::Left => beam.dir = Direction::Up,
+                        Direction::Right => beam.dir = Direction::Down,
+                    },
+                    Kind::HorizontalSplitter => match beam.dir {
+                        Direction::Up | Direction::Down => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Right,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Left,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                        Direction::Left => {}
+                        Direction::Right => {}
+                    },
+                    Kind::VerticalSplitter => match beam.dir {
+                        Direction::Up => {}
+                        Direction::Down => {}
+                        Direction::Left | Direction::Right => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Up,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Down,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                    },
+                }
+                grid[row_idx][col_idx].is_energized = true;
+            }
+            beams.retain(|b| !b.complete);
+            beams.append(&mut new_beams);
+
+            // println!("BEAMS: {beams:?}");
+        }
+
+        let mut count = 0;
+        for row in grid {
+            for tile in row {
+                if tile.is_energized {
+                    count += 1;
+                }
+            }
+        }
+
+        if count > biggest {
+            biggest = count;
+        }
+    }
+
+    // bottom
+    for i in 0..g[0].len() {
+        let mut grid = g.clone();
+
+        let mut beams = vec![Beam {
+            complete: false,
+            pos: (grid.len() as isize, i as isize),
+            dir: Direction::Up,
+        }];
+        let mut new_beams = Vec::new();
+
+        loop {
+            if beams.is_empty() {
+                break;
+            }
+
+            for beam in &mut beams {
+                let offset = beam.dir.offset();
+
+                beam.pos.0 += offset.0;
+                beam.pos.1 += offset.1;
+
+                if beam.pos.0 < 0 || beam.pos.0 >= grid.len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let row_idx = beam.pos.0 as usize;
+
+                if beam.pos.1 < 0 || beam.pos.1 >= grid[row_idx].len() as isize {
+                    beam.complete = true;
+                    break;
+                }
+                let col_idx = beam.pos.1 as usize;
+
+                match grid[row_idx][col_idx].kind {
+                    Kind::Space => {}
+                    Kind::RightMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Right,
+                        Direction::Down => beam.dir = Direction::Left,
+                        Direction::Left => beam.dir = Direction::Down,
+                        Direction::Right => beam.dir = Direction::Up,
+                    },
+                    Kind::LeftMirror => match beam.dir {
+                        Direction::Up => beam.dir = Direction::Left,
+                        Direction::Down => beam.dir = Direction::Right,
+                        Direction::Left => beam.dir = Direction::Up,
+                        Direction::Right => beam.dir = Direction::Down,
+                    },
+                    Kind::HorizontalSplitter => match beam.dir {
+                        Direction::Up | Direction::Down => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Right,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Left,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                        Direction::Left => {}
+                        Direction::Right => {}
+                    },
+                    Kind::VerticalSplitter => match beam.dir {
+                        Direction::Up => {}
+                        Direction::Down => {}
+                        Direction::Left | Direction::Right => {
+                            if !grid[row_idx][col_idx].is_energized {
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Up,
+                                });
+                                new_beams.push(Beam {
+                                    complete: false,
+                                    pos: beam.pos,
+                                    dir: Direction::Down,
+                                });
+                            }
+                            beam.complete = true;
+                        }
+                    },
+                }
+                grid[row_idx][col_idx].is_energized = true;
+            }
+            beams.retain(|b| !b.complete);
+            beams.append(&mut new_beams);
+
+            // println!("BEAMS: {beams:?}");
+        }
+
+        let mut count = 0;
+        for row in grid {
+            for tile in row {
+                if tile.is_energized {
+                    count += 1;
+                }
+            }
+        }
+
+        if count > biggest {
+            biggest = count;
+        }
+    }
+
+    let e = Instant::now();
+    println!("Processed in {:?}", e.duration_since(s));
+
+    biggest
 }
 
 fn deserialize(input: &str) -> Vec<Vec<Tile>> {
