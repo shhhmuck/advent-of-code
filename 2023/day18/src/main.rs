@@ -99,17 +99,17 @@ fn part_1(input: &str) -> usize {
 
     let s = Instant::now();
 
-    let mut trenched = vec![(0_f32, 0_f32)];
+    let mut trench_coords = vec![(0_f32, 0_f32)];
     let mut position = (0_f32, 0_f32);
     let mut trench_size = 0;
 
     for plan in plans {
         plan.offset(&mut position);
         trench_size += plan.size;
-        trenched.push(position);
+        trench_coords.push(position);
     }
 
-    let p = Polygon::new(trenched.into(), vec![]);
+    let p = Polygon::new(trench_coords.into(), vec![]);
     let solve = p.unsigned_area() as usize + trench_size / 2 + 1;
 
     println!("Processed in {:?}", Instant::now().duration_since(s));
