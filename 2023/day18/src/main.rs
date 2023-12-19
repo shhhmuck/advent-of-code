@@ -1,7 +1,6 @@
 use std::time::Instant;
 
-use geo::Area;
-use geo::Polygon;
+use geo::{polygon, Area, Coord, Polygon};
 
 const INPUT: &str = include_str!("./input.txt");
 const TEST: &str = "\
@@ -62,18 +61,19 @@ impl Plan {
         Plan { dir, size, color }
     }
 
-    fn offset(&self, position: &mut (f32, f32)) {
+    fn offset(&self, position: &mut (f64, f64)) {
         match self.dir {
-            Direction::Up => position.0 -= self.size as f32,
-            Direction::Down => position.0 += self.size as f32,
-            Direction::Left => position.1 -= self.size as f32,
-            Direction::Right => position.1 += self.size as f32,
+            Direction::Up => position.0 -= self.size as f64,
+            Direction::Down => position.0 += self.size as f64,
+            Direction::Left => position.1 -= self.size as f64,
+            Direction::Right => position.1 += self.size as f64,
         }
     }
 }
 
 fn main() {
-    println!("{}", part_1(INPUT));
+    // println!("{}", part_1(INPUT));
+    println!("{}", part_2(INPUT));
 }
 
 fn deser_part_1(input: &str) -> Vec<Plan> {
@@ -85,28 +85,67 @@ fn deser_part_1(input: &str) -> Vec<Plan> {
 
 fn deser_part_2(input: &str) -> Vec<Plan> {
     let s = Instant::now();
-    let plans = input.lines().map(Plan::from_line).collect();
+    let plans = input.lines().map(|l| {
+        let mut split = l.split_ascii_whitespace();
+        split.next();
+        split.next();
+
+        let color = split.next().unwrap().replace(['(', ')', '#'], "");
+
+        let size = usize::from_str_radix(&color[0..5], 16).unwrap();
+        let dir = match &color.chars().nth(5).unwrap() {
+            '0' => Direction::Right,
+            '1' => Direction::Down,
+            '2' => Direction::Left,  
+            '3' => Direction::Up,
+            _=> unreachable!("no other numbers"),
+        };
+
+
+        Plan { dir, size, color }
+    }).collect();
     println!("Deserialized in {:?}", Instant::now().duration_since(s));
     plans
 }
 
-// fn part_2(input:&str) -> usize {
+fn part_2(input:&str) -> usize {
+    let plans = deser_part_2(input);
 
-// }
+    let s = Instant::now();
+
+    let mut trench_coords = vec![Coord::from((0_f64,0_f64))];
+    
+    let mut position = (0_f64, 0_f64);
+    let mut trench_size = 0;
+
+    for plan in plans {
+        plan.offset(&mut position);
+        trench_size += plan.size;
+        trench_coords.push(Coord::from(position));
+    }
+
+    let p = Polygon::new(trench_coords.into(), vec![]);
+    let solve = p.unsigned_area() as usize + trench_size / 2 + 1;
+
+    println!("Processed in {:?}", Instant::now().duration_since(s));
+
+    solve
+}
 
 fn part_1(input: &str) -> usize {
     let plans = deser_part_1(input);
 
     let s = Instant::now();
 
-    let mut trench_coords = vec![(0_f32, 0_f32)];
-    let mut position = (0_f32, 0_f32);
+    let mut trench_coords = vec![Coord::from((0_f64,0_f64))];
+    
+    let mut position = (0_f64, 0_f64);
     let mut trench_size = 0;
 
     for plan in plans {
         plan.offset(&mut position);
         trench_size += plan.size;
-        trench_coords.push(position);
+        trench_coords.push(Coord::from(position));
     }
 
     let p = Polygon::new(trench_coords.into(), vec![]);
@@ -248,6 +287,7 @@ mod tests {
         assert_eq!(part_1(TEST), 62)
     }
 
+    #[test]
     fn test_part_2() {
         assert_eq!(part_2(TEST), 952408144115)
     }
