@@ -1,24 +1,8 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::f32::INFINITY;
+use std::collections::{BinaryHeap, HashSet};
 use std::time::Instant;
 
 const INPUT: &str = include_str!("./input.txt");
-const TEST: &str = "\
-2413432311323
-3215453535623
-3255245654254
-3446585845452
-4546657867536
-1438598798454
-4457876987766
-3637877979653
-4654967986887
-4564679986453
-1224686865563
-2546548887735
-4322674655533";
-
 
 type Point = (usize, usize);
 type Direction = (isize, isize);
@@ -54,21 +38,26 @@ impl PartialOrd for State {
     }
 }
 
+fn main() {
+    println!("{}", part_1(INPUT));
+    println!("{}", part_2(INPUT));
+}
+
 fn get_lowest_heat_path(
     graph: &[Vec<usize>],
     start: Point,
     end: Point,
+    dir_minimum: usize,
     dir_limit: usize,
 ) -> Option<usize> {
     let mut heap = BinaryHeap::new();
     let mut visited = HashSet::new();
-    let mut costs = HashMap::new();
 
     heap.push(State::new(start, 0, 0, None));
 
     while let Some(state) = heap.pop() {
         // if we've reached the end point we can return the cost
-        if state.point == end {
+        if state.point == end && state.moves >= dir_minimum {
             return Some(state.cost);
         }
 
@@ -80,15 +69,20 @@ fn get_lowest_heat_path(
         // add this state to visited so we can ignore next time
         visited.insert((state.point, state.direction, state.moves));
 
-        costs.insert(state.point, (state.cost, state.direction, state.moves));
-
         for dir in [(0, 1), (1, 0), (0, -1), (-1, 0)].iter() {
             // ignore exploration of opposite direction as we can only go straight left or right
-            if state.direction == Some((-dir.0, -dir.1)) {
+            if state.direction == Some((-dir.0, -dir.1))
+                || state.direction == Some(*dir) && state.moves == dir_limit
+            {
                 continue;
             }
 
-            if state.direction == Some(*dir) && state.moves >= dir_limit {
+            // if its not the original state,
+            // and its some direction other than the current but current is less than min moves skip
+            if state.direction.is_some()
+                && state.direction != Some(*dir)
+                && state.moves < dir_minimum
+            {
                 continue;
             }
 
@@ -104,21 +98,15 @@ fn get_lowest_heat_path(
                 1
             };
 
-            // let mut consecutive_direction_count = 0;
             if next_point.0 >= 0
                 && next_point.0 < graph.len() as isize
                 && next_point.1 >= 0
                 && next_point.1 < graph[0].len() as isize
-                // && consecutive_direction_count < dir_limit as isize
             {
                 let next_point_usize = (next_point.0 as usize, next_point.1 as usize);
                 let next_cost = state.cost + graph[next_point_usize.0][next_point_usize.1];
 
-                if !visited.contains(&(next_point_usize, Some(*dir), next_moves))
-                    && (costs
-                        .get(&next_point_usize)
-                        .map_or(true, |&(c, _, _)| next_cost < c))
-                {
+                if !visited.contains(&(next_point_usize, Some(*dir), next_moves)) {
                     heap.push(State::new(
                         next_point_usize,
                         next_cost,
@@ -126,24 +114,27 @@ fn get_lowest_heat_path(
                         Some(*dir),
                     ));
                 }
-                // next_point = (next_point.0 + dir.0, next_point.1 + dir.1);
-                // consecutive_direction_count += 1;
             }
-            // consecutive_direction_count = 0;
         }
     }
     None
 }
 
-fn main() {
-    println!("{}", part_1(INPUT));
+fn part_2(input: &str) -> usize {
+    let graph = deser(input);
+    let s = Instant::now();
+    let ans =
+        get_lowest_heat_path(&graph, (0, 0), (graph.len() - 1, graph[0].len() - 1), 4, 10).unwrap();
+    let e = Instant::now();
+    println!("Processed in {:?}", e.duration_since(s));
+    ans
 }
 
 fn part_1(input: &str) -> usize {
     let graph = deser(input);
     let s = Instant::now();
     let ans =
-        get_lowest_heat_path(&graph, (0, 0), (graph.len() - 1, graph[0].len() - 1), 3).unwrap();
+        get_lowest_heat_path(&graph, (0, 0), (graph.len() - 1, graph[0].len() - 1), 0, 3).unwrap();
     let e = Instant::now();
     println!("Processed in {:?}", e.duration_since(s));
     ans
@@ -168,9 +159,40 @@ fn deser(input: &str) -> Vec<Vec<usize>> {
 mod tests {
     use super::*;
 
+    const TEST: &str = "\
+2413432311323
+3215453535623
+3255245654254
+3446585845452
+4546657867536
+1438598798454
+4457876987766
+3637877979653
+4654967986887
+4564679986453
+1224686865563
+2546548887735
+4322674655533";
+
     #[test]
     fn test_part_1() {
-        assert_eq!(part_1(TEST), 102)
+        assert_eq!(part_1(TEST), 102);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(TEST), 94);
+    }
+
+    #[test]
+    fn test_part_2_otr() {
+        let t = "\
+111111111111
+999999999991
+999999999991
+999999999991
+999999999991";
+        assert_eq!(part_2(t), 71);
     }
 }
 
