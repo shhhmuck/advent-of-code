@@ -70,18 +70,15 @@ fn get_lowest_heat_path(
         visited.insert((state.point, state.direction, state.moves));
 
         for dir in [(0, 1), (1, 0), (0, -1), (-1, 0)].iter() {
-            // ignore exploration of opposite direction as we can only go straight left or right
+            // if we are at opposite direction
+            // if we are at dir limit and going the same direction
+            // if its some direction other than the current but current is less than min moves
+            // SKIP
             if state.direction == Some((-dir.0, -dir.1))
                 || state.direction == Some(*dir) && state.moves == dir_limit
-            {
-                continue;
-            }
-
-            // if its not the original state,
-            // and its some direction other than the current but current is less than min moves skip
-            if state.direction.is_some()
-                && state.direction != Some(*dir)
-                && state.moves < dir_minimum
+                || state.direction.is_some()
+                    && state.direction != Some(*dir)
+                    && state.moves < dir_minimum
             {
                 continue;
             }
