@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::f32::INFINITY;
 use std::time::Instant;
 
 const INPUT: &str = include_str!("./input.txt");
@@ -25,7 +26,19 @@ type Direction = (isize, isize);
 struct State {
     point: Point,
     cost: usize,
-    prev_dir: Option<Direction>,
+    moves: usize,
+    direction: Option<Direction>,
+}
+
+impl State {
+    fn new(point: Point, cost: usize, moves: usize, direction: Option<Direction>) -> Self {
+        Self {
+            point,
+            cost,
+            moves,
+            direction,
+        }
+    }
 }
 
 impl Ord for State {
@@ -50,81 +63,82 @@ fn get_lowest_heat_path(
     let mut visited = HashSet::new();
     let mut costs = HashMap::new();
 
-    heap.push(State {
-        point: start,
-        cost: 0,
-        prev_dir: None,
-    });
+    heap.push(State::new(start, 0, 0, None));
 
-    while let Some(State {
-        point,
-        cost,
-        prev_dir,
-    }) = heap.pop()
-    {
-        if point == end {
-            return Some(cost);
+    while let Some(state) = heap.pop() {
+        // if we've reached the end point we can return the cost
+        if state.point == end {
+            return Some(state.cost);
         }
 
-        if visited.contains(&point) {
+        // if we've explored this state skip it
+        if visited.contains(&(state.point, state.direction, state.moves)) {
             continue;
         }
 
-        visited.insert(point);
-        costs.insert(point, (cost, prev_dir));
+        // add this state to visited so we can ignore next time
+        visited.insert((state.point, state.direction, state.moves));
 
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-        let mut consecutive_direction_count = 0;
+        costs.insert(state.point, (state.cost, state.direction, state.moves));
 
-        for dir in directions.iter() {
-            let dir_opposite = (-dir.0, -dir.1);
-            if prev_dir == Some(dir_opposite) {
+        for dir in [(0, 1), (1, 0), (0, -1), (-1, 0)].iter() {
+            // ignore exploration of opposite direction as we can only go straight left or right
+            if state.direction == Some((-dir.0, -dir.1)) {
                 continue;
             }
 
-            let mut next_point = (point.0 as isize + dir.0, point.1 as isize + dir.1);
+            let next_point = (
+                state.point.0 as isize + dir.0,
+                state.point.1 as isize + dir.1,
+            );
 
-            while next_point.0 >= 0
+            // if we are moving the same direction iterate the moves
+            let next_moves = if state.direction == Some(*dir) {
+                state.moves + 1
+            } else {
+                1
+            };
+
+            // let mut consecutive_direction_count = 0;
+            if next_point.0 >= 0
                 && next_point.0 < graph.len() as isize
                 && next_point.1 >= 0
                 && next_point.1 < graph[0].len() as isize
-                && consecutive_direction_count < dir_limit as isize
+                // && consecutive_direction_count < dir_limit as isize
             {
                 let next_point_usize = (next_point.0 as usize, next_point.1 as usize);
-                let next_cost = cost + graph[next_point_usize.0][next_point_usize.1];
+                let next_cost = state.cost + graph[next_point_usize.0][next_point_usize.1];
 
-                if !visited.contains(&next_point_usize)
+                if !visited.contains(&(next_point_usize, Some(*dir), next_moves))
                     && (costs
                         .get(&next_point_usize)
-                        // TODO: refactor this
-                        .map_or(true, |&(c, _)| next_cost < c))
+                        .map_or(true, |&(c, _, _)| next_cost < c))
                 {
-                    heap.push(State {
-                        point: next_point_usize,
-                        cost: next_cost,
-                        prev_dir: Some(*dir),
-                    });
+                    heap.push(State::new(
+                        next_point_usize,
+                        next_cost,
+                        next_moves,
+                        Some(*dir),
+                    ));
                 }
-
-                next_point = (next_point.0 + dir.0, next_point.1 + dir.1);
-                consecutive_direction_count += 1;
+                // next_point = (next_point.0 + dir.0, next_point.1 + dir.1);
+                // consecutive_direction_count += 1;
             }
-
-            consecutive_direction_count = 0;
+            // consecutive_direction_count = 0;
         }
     }
-
     None
 }
 
 fn main() {
-    println!("{}", part_1(INPUT));
+    println!("{}", part_1(TEST));
 }
 
 fn part_1(input: &str) -> usize {
     let graph = deser(input);
     let s = Instant::now();
-    let ans = get_lowest_heat_path(&graph, (0, 0), (graph.len() - 1, graph[0].len() - 1), 3).unwrap();
+    let ans =
+        get_lowest_heat_path(&graph, (0, 0), (graph.len() - 1, graph[0].len() - 1), 3).unwrap();
     let e = Instant::now();
     println!("Processed in {:?}", e.duration_since(s));
     ans
@@ -183,6 +197,7 @@ mod tests {
 //             // }
 //             // if r > 2 {
 //             //     dp[r][c] = min(dp[r][c], dp[r - 3][c] + *col);
+
 //             // }
 //             // if c > 2 {
 //             //     dp[r][c] = min(dp[r][c], dp[r][c - 3] + *col);
