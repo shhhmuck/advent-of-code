@@ -19,6 +19,7 @@ const TEST: &str = "\
 2546548887735
 4322674655533";
 
+
 type Point = (usize, usize);
 type Direction = (isize, isize);
 
@@ -87,6 +88,10 @@ fn get_lowest_heat_path(
                 continue;
             }
 
+            if state.direction == Some(*dir) && state.moves >= dir_limit {
+                continue;
+            }
+
             let next_point = (
                 state.point.0 as isize + dir.0,
                 state.point.1 as isize + dir.1,
@@ -131,7 +136,7 @@ fn get_lowest_heat_path(
 }
 
 fn main() {
-    println!("{}", part_1(TEST));
+    println!("{}", part_1(INPUT));
 }
 
 fn part_1(input: &str) -> usize {
