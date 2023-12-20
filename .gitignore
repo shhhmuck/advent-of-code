@@ -1,4 +1,10 @@
 target/
-**/tmp.txt
-.vscode
-**/input.txt
+*.log
+*.txt
+*.vscode
+*.tmp
+
+**/*.log
+**/*.txt
+**/*.tmp
+**/.vscode

@@ -1,5 +1,4 @@
 use std::{collections::HashMap, time::Instant};
-use itertools::Itertools;
 
 const INPUT: &str = include_str!("./input.txt");
 const TEST: &str = "\
@@ -29,60 +28,43 @@ impl Condition {
     }
 }
 
+#[derive(Debug)]
+struct Record {
+    conditions: Vec<Condition>,
+    groups: Vec<usize>,
+}
+
 fn main() {
     part_1(TEST);
 }
 
+fn deser(input: &str) -> Vec<Record> {
+    let s = Instant::now();
+    let records = input
+        .lines()
+        .map(|l| {
+            let (conditions, groups) = l.split_once(' ').unwrap();
+            let conditions: Vec<Condition> = conditions.chars().map(Condition::from).collect();
+            let groups: Vec<usize> = groups
+                .split(',')
+                .map(|s| s.parse::<usize>().unwrap())
+                .collect();
+            Record { conditions, groups }
+        })
+        .collect();
+
+    let e = Instant::now();
+    println!("Deserialized in {:?}", e.duration_since(s));
+
+    records
+}
+
 fn part_1(input: &str) -> usize {
-    // let mut memo: HashMap<String, usize> = HashMap::new();
-    let start = Instant::now();
+    let records = deser(input);
 
-    let mut total = 0;
-
-    for line in input.lines() {
-        let split = line.split_once(' ').expect("provided input");
-        // let springs: Vec<Condition> = split.0.chars().map(Condition::from).collect();
-        let springs: Vec<char> = split.0.chars().collect();
-        let counts: Vec<usize> = split
-            .1
-            .split(',')
-            .map(|s| s.parse::<usize>().unwrap())
-            .collect();
-
-        println!("{:?}, {:?}", springs, counts);
-
-        let mut arrangements = 0;
-        
-        for arrangement in springs.iter().permutations(springs.len()).unique() {
-            println!("{:?}", arrangement);
-            let mut iter = arrangement.into_iter();
-            let mut groups = vec![];
-
-            for &length in &counts {
-                let mut group = vec![];
-                for _ in 0..length {
-                    if let Some(spring) = iter.next() {
-                        println!("{spring}");
-                        group.push(spring);
-                    } else {
-                        return arrangements; // Invalid arrangement
-                    }
-                }
-                groups.push(group);
-            }
-
-            if groups.iter().all(|group| group.iter().all(|&spring| *spring == '#' || *spring == '?')) {
-                arrangements += 1;
-            }
-        }
-
-        total += arrangements;
-    
+    for record in records {
+        println!("{:?} {:?}", record.conditions, record.groups)
     }
-
-    let end = Instant::now();
-    println!("Deserialized in {:?}", end.duration_since(start));
-
 
     0
 }
