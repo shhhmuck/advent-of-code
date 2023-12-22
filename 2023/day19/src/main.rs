@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap, time::Instant};
 
 const INPUT: &str = include_str!("./input.txt");
 const TEST: &str = "\
@@ -20,7 +20,7 @@ hdj{m>838:A,pv}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}";
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Status {
     Accepted,
     Rejected,
@@ -56,45 +56,181 @@ impl Category {
     }
 }
 
+#[derive(Debug)]
 struct Part {
     x: usize,
     m: usize,
     a: usize,
     s: usize,
+    status: Option<Status>,
 }
 
-struct Workflow {}
+impl Part {
+    fn from_line(line: &str) -> Self {
+        let mut part = Self {
+            x: 0,
+            m: 0,
+            a: 0,
+            s: 0,
+            status: None,
+        };
+
+        let line = line.replace(['{', '}'], "");
+        line.split(',').for_each(|p| {
+            let (cat, val) = p.split_once('=').unwrap();
+            let cat = Category::from_char(cat.chars().next().unwrap());
+            let val = val.parse::<usize>().unwrap();
+
+            match cat {
+                Category::ExtremelyCoolLooking => part.x = val,
+                Category::Musical => part.m = val,
+                Category::Aerodynamic => part.a = val,
+                Category::Shiny => part.s = val,
+            }
+        });
+
+        part
+    }
+
+    fn value(&self) -> usize {
+        self.x + self.m + self.a + self.s
+    }
+}
+
+#[derive(Debug)]
+struct Rule {
+    operation: char,
+    category: char,
+    size: usize,
+}
 
 fn main() {
-    println!("Part 1: {}", part_1(TEST));
+    println!("Part 1 = {}", part_1(INPUT));
 }
 
 fn part_1(input: &str) -> usize {
+    let start = Instant::now();
+    let mut workflow_map: HashMap<String, Vec<(_, _)>> = HashMap::new();
     let (workflows, parts) = input.split_once("\n\n").unwrap();
-
-    let mut workflow_map: HashMap<_, _> = HashMap::new();
-
-    for line in workflows.lines() {
-        let (name, conditions) = line.split_once('{').unwrap();
-        let (conditions, status) = conditions.split_once('}').unwrap();
-        let conditions: Vec<_> = conditions.split(',').collect();
-        let mut conditions: HashMap<_, _> = conditions
+    workflows.lines().for_each(|l| {
+        let w: String = l.replace(['{', '}'], " ");
+        let (name, w) = w.trim_end().split_once(' ').unwrap();
+        let w: Vec<String> = w.split(',').map(String::from).collect();
+        let w = w
             .iter()
-            .map(|condition| {
-                let (category, range) = condition.split_once(':').unwrap();
-                let (min, max) = range.split_once('-').unwrap();
-                let min = min.parse::<usize>().unwrap();
-                let max = max.parse::<usize>().unwrap();
-                (
-                    Category::from_char(category.chars().next().unwrap()),
-                    (min, max),
-                )
+            .map(|i| {
+                let split = i.split(':').collect::<Vec<_>>();
+                match split.len() {
+                    1 => (None, split[0].to_string()),
+                    2 => {
+                        let mut op_split = split[0].chars();
+                        let category = op_split.next().unwrap();
+                        let operation = op_split.next().unwrap();
+                        let size = op_split.collect::<String>().parse().unwrap();
+                        let dest = split[1].to_string();
+                        (
+                            Some(Rule {
+                                category,
+                                operation,
+                                size,
+                            }),
+                            dest,
+                        )
+                    }
+                    _ => unreachable!("should have at most 2 parts"),
+                }
             })
             .collect();
-        let status = Status::from_char(status.chars().next().unwrap());
-        workflow_map.insert(name, (conditions, status));
+
+        workflow_map.insert(name.to_string(), w);
+    });
+    let mut parts = parts.lines().map(Part::from_line).collect::<Vec<_>>();
+
+    let mut total = 0;
+    for part in &mut parts {
+        let mut workflow = workflow_map.get("in").unwrap();
+
+        while part.status.is_none() {
+            for (rule, dest) in workflow {
+                // if there is no rule we are directly at a destination
+                if rule.is_none() {
+                    match dest.as_str() {
+                        "A" => {
+                            part.status = Some(Status::Accepted);
+                            break;
+                        }
+                        "R" => {
+                            part.status = Some(Status::Rejected);
+                            break;
+                        }
+                        _ => {
+                            workflow = workflow_map.get(dest).unwrap();
+                            break;
+                        }
+                    }
+                } else {
+                    let rule = rule.as_ref().unwrap();
+                    let value = match rule.category {
+                        'x' => part.x,
+                        'm' => part.m,
+                        'a' => part.a,
+                        's' => part.s,
+                        _ => unreachable!("Invalid category"),
+                    };
+                    match rule.operation {
+                        '<' => {
+                            if value < rule.size {
+                                match dest.as_str() {
+                                    "A" => {
+                                        part.status = Some(Status::Accepted);
+                                        break;
+                                    }
+                                    "R" => {
+                                        part.status = Some(Status::Rejected);
+                                        break;
+                                    }
+                                    _ => {
+                                        workflow = workflow_map.get(dest).unwrap();
+                                        break;
+                                    }
+                                }
+                            } else {
+                                continue;
+                            }
+                        }
+                        '>' => {
+                            if value > rule.size {
+                                match dest.as_str() {
+                                    "A" => {
+                                        part.status = Some(Status::Accepted);
+                                        break;
+                                    }
+                                    "R" => {
+                                        part.status = Some(Status::Rejected);
+                                        break;
+                                    }
+                                    _ => {
+                                        workflow = workflow_map.get(dest).unwrap();
+                                        break;
+                                    }
+                                }
+                            } else {
+                                continue;
+                            }
+                        }
+                        _ => unreachable!("Invalid operation"),
+                    }
+                }
+            }
+        }
+
+        if part.status == Some(Status::Accepted) {
+            total += part.value();
+        }
     }
 
-    println!("workflow_map: {:?}", workflow_map);
-    0
+    let end = Instant::now();
+    println!("Part 1 in {:?}", end.duration_since(start));
+
+    total
 }
