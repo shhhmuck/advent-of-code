@@ -1,6 +1,7 @@
-use std::{cmp, collections::HashMap, time::Instant};
+use std::{collections::HashMap, time::Instant};
 
 const INPUT: &str = include_str!("./input.txt");
+#[allow(dead_code)]
 const TEST: &str = "\
 px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -26,36 +27,6 @@ enum Status {
     Rejected,
 }
 
-impl Status {
-    fn from_char(c: char) -> Self {
-        match c {
-            'A' => Self::Accepted,
-            'R' => Self::Rejected,
-            _ => unreachable!("Invalid status"),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-enum Category {
-    ExtremelyCoolLooking, // x
-    Musical,              // m
-    Aerodynamic,          // a
-    Shiny,                // s
-}
-
-impl Category {
-    fn from_char(c: char) -> Self {
-        match c {
-            'x' => Self::ExtremelyCoolLooking,
-            'm' => Self::Musical,
-            'a' => Self::Aerodynamic,
-            's' => Self::Shiny,
-            _ => unreachable!("Invalid category"),
-        }
-    }
-}
-
 #[derive(Debug)]
 struct Part {
     x: usize,
@@ -74,18 +45,16 @@ impl Part {
             s: 0,
             status: None,
         };
-
-        let line = line.replace(['{', '}'], "");
-        line.split(',').for_each(|p| {
-            let (cat, val) = p.split_once('=').unwrap();
-            let cat = Category::from_char(cat.chars().next().unwrap());
+        line.replace(['{', '}'], "").split(',').for_each(|p| {
+            let (category, val) = p.split_once('=').unwrap();
+            let category = category.chars().next().unwrap();
             let val = val.parse::<usize>().unwrap();
-
-            match cat {
-                Category::ExtremelyCoolLooking => part.x = val,
-                Category::Musical => part.m = val,
-                Category::Aerodynamic => part.a = val,
-                Category::Shiny => part.s = val,
+            match category {
+                'x' => part.x = val,
+                'm' => part.m = val,
+                'a' => part.a = val,
+                's' => part.s = val,
+                _ => unreachable!("Invalid category"),
             }
         });
 
@@ -105,18 +74,28 @@ struct Rule {
 }
 
 fn main() {
-    println!("Part 1 = {}", part_1(INPUT));
+    // let s = Instant::now();
+    // println!(
+    //     "Part 1 = {} in {:?}",
+    //     part_1(INPUT),
+    //     Instant::now().duration_since(s)
+    // );
+    let s = Instant::now();
+    println!(
+        "Part 2 = {} in {:?}",
+        part_2(TEST),
+        Instant::now().duration_since(s)
+    );
 }
 
 fn part_1(input: &str) -> usize {
-    let start = Instant::now();
     let mut workflow_map: HashMap<String, Vec<(_, _)>> = HashMap::new();
     let (workflows, parts) = input.split_once("\n\n").unwrap();
-    workflows.lines().for_each(|l| {
-        let w: String = l.replace(['{', '}'], " ");
-        let (name, w) = w.trim_end().split_once(' ').unwrap();
-        let w: Vec<String> = w.split(',').map(String::from).collect();
-        let w = w
+    for line in workflows.lines() {
+        let line: String = line.replace(['{', '}'], " ");
+        let (name, rules) = line.trim_end().split_once(' ').unwrap();
+        let rules: Vec<String> = rules.split(',').map(String::from).collect();
+        let rules: Vec<(Option<Rule>, String)> = rules
             .iter()
             .map(|i| {
                 let split = i.split(':').collect::<Vec<_>>();
@@ -141,33 +120,24 @@ fn part_1(input: &str) -> usize {
                 }
             })
             .collect();
-
-        workflow_map.insert(name.to_string(), w);
-    });
+        workflow_map.insert(name.to_string(), rules);
+    }
     let mut parts = parts.lines().map(Part::from_line).collect::<Vec<_>>();
 
     let mut total = 0;
     for part in &mut parts {
+        // start workflow at in
         let mut workflow = workflow_map.get("in").unwrap();
-
         while part.status.is_none() {
             for (rule, dest) in workflow {
-                // if there is no rule we are directly at a destination
+                // No rule we are directly at a destination
                 if rule.is_none() {
                     match dest.as_str() {
-                        "A" => {
-                            part.status = Some(Status::Accepted);
-                            break;
-                        }
-                        "R" => {
-                            part.status = Some(Status::Rejected);
-                            break;
-                        }
-                        _ => {
-                            workflow = workflow_map.get(dest).unwrap();
-                            break;
-                        }
+                        "A" => part.status = Some(Status::Accepted),
+                        "R" => part.status = Some(Status::Rejected),
+                        _ => workflow = workflow_map.get(dest).unwrap(),
                     }
+                    break;
                 } else {
                     let rule = rule.as_ref().unwrap();
                     let value = match rule.category {
@@ -181,19 +151,11 @@ fn part_1(input: &str) -> usize {
                         '<' => {
                             if value < rule.size {
                                 match dest.as_str() {
-                                    "A" => {
-                                        part.status = Some(Status::Accepted);
-                                        break;
-                                    }
-                                    "R" => {
-                                        part.status = Some(Status::Rejected);
-                                        break;
-                                    }
-                                    _ => {
-                                        workflow = workflow_map.get(dest).unwrap();
-                                        break;
-                                    }
+                                    "A" => part.status = Some(Status::Accepted),
+                                    "R" => part.status = Some(Status::Rejected),
+                                    _ => workflow = workflow_map.get(dest).unwrap(),
                                 }
+                                break;
                             } else {
                                 continue;
                             }
@@ -201,19 +163,11 @@ fn part_1(input: &str) -> usize {
                         '>' => {
                             if value > rule.size {
                                 match dest.as_str() {
-                                    "A" => {
-                                        part.status = Some(Status::Accepted);
-                                        break;
-                                    }
-                                    "R" => {
-                                        part.status = Some(Status::Rejected);
-                                        break;
-                                    }
-                                    _ => {
-                                        workflow = workflow_map.get(dest).unwrap();
-                                        break;
-                                    }
+                                    "A" => part.status = Some(Status::Accepted),
+                                    "R" => part.status = Some(Status::Rejected),
+                                    _ => workflow = workflow_map.get(dest).unwrap(),
                                 }
+                                break;
                             } else {
                                 continue;
                             }
@@ -223,14 +177,253 @@ fn part_1(input: &str) -> usize {
                 }
             }
         }
-
         if part.status == Some(Status::Accepted) {
             total += part.value();
         }
     }
 
-    let end = Instant::now();
-    println!("Part 1 in {:?}", end.duration_since(start));
-
     total
+}
+
+fn part_2(input: &str) -> u128 {
+    let mut workflow_map: HashMap<String, Vec<(_, _)>> = HashMap::new();
+    let (workflows, _parts) = input.split_once("\n\n").unwrap();
+    for line in workflows.lines() {
+        let line: String = line.replace(['{', '}'], " ");
+        let (name, rules) = line.trim_end().split_once(' ').unwrap();
+        let rules: Vec<String> = rules.split(',').map(String::from).collect();
+        let rules: Vec<(Option<Rule>, String)> = rules
+            .iter()
+            .map(|i| {
+                let split = i.split(':').collect::<Vec<_>>();
+                match split.len() {
+                    1 => (None, split[0].to_string()),
+                    2 => {
+                        let mut op_split = split[0].chars();
+                        let category = op_split.next().unwrap();
+                        let operation = op_split.next().unwrap();
+                        let size = op_split.collect::<String>().parse().unwrap();
+                        let dest = split[1].to_string();
+                        (
+                            Some(Rule {
+                                category,
+                                operation,
+                                size,
+                            }),
+                            dest,
+                        )
+                    }
+                    _ => unreachable!("should have at most 2 parts"),
+                }
+            })
+            .collect();
+        workflow_map.insert(name.to_string(), rules);
+    }
+
+    let mut total = 0;
+
+    let mut accepted = vec![];
+    let mut states = vec![("in", (0, 4000), (0, 4000), (0, 4000), (0, 4000))];
+
+    while let Some((destination, mut m_range, mut a_range, mut s_range, mut x_range)) = states.pop() {
+        let workflow = workflow_map.get(destination).unwrap();
+        for (rule, dest) in workflow {
+            if rule.is_none() {
+                match dest.as_str() {
+                    "A" => accepted.push((m_range, a_range, s_range, x_range)),
+                    "R" => {}
+                    _ => states.push((dest, m_range, a_range, s_range, x_range)),
+                }
+                continue;
+            } else {
+                let rule = rule.as_ref().unwrap();
+
+                match rule.category {
+                    'm' => {
+                        if rule.operation == '<' {
+                            if m_range.0 < rule.size {
+                                states.push((
+                                    dest,
+                                    (m_range.0, rule.size - 1),
+                                    a_range,
+                                    s_range,
+                                    x_range,
+                                ));
+                                m_range = (rule.size, m_range.1);
+                            }
+                            if m_range.1 < rule.size {
+                                states.push((
+                                    dest,
+                                    (rule.size, m_range.1),
+                                    a_range,
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                        } else {
+                            if m_range.0 > rule.size {
+                                states.push((
+                                    dest,
+                                    (rule.size, m_range.0),
+                                    a_range,
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                            if m_range.1 > rule.size {
+                                states.push((
+                                    dest,
+                                    (m_range.1, rule.size),
+                                    a_range,
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                        }
+                    }
+                    'a' => {
+                        if rule.operation == '<' {
+                            if a_range.0 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    (a_range.0, rule.size),
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                            if a_range.1 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    (rule.size, a_range.1),
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                        } else {
+                            if a_range.0 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    (rule.size, a_range.0),
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                            if a_range.1 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    (a_range.1, rule.size),
+                                    s_range,
+                                    x_range,
+                                ));
+                            }
+                        }
+                    }
+                    's' => {
+                        if rule.operation == '<' {
+                            if s_range.0 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    (s_range.0, rule.size),
+                                    x_range,
+                                ));
+                            }
+                            if s_range.1 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    (rule.size, s_range.1),
+                                    x_range,
+                                ));
+                            }
+                        } else {
+                            if s_range.0 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    (rule.size, s_range.0),
+                                    x_range,
+                                ));
+                            }
+                            if s_range.1 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    (s_range.1, rule.size),
+                                    x_range,
+                                ));
+                            }
+                        }
+                    }
+                    'x' => {
+                        if rule.operation == '<' {
+                            if x_range.0 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    s_range,
+                                    (x_range.0, rule.size),
+                                ));
+                            }
+                            if x_range.1 < rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    s_range,
+                                    (rule.size, x_range.1),
+                                ));
+                            }
+                        } else {
+                            if x_range.0 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    s_range,
+                                    (rule.size, x_range.0),
+                                ));
+                            }
+                            if x_range.1 > rule.size {
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    s_range,
+                                    (x_range.1, rule.size),
+                                ));
+                            }
+                        }
+                    }
+                    _ => unreachable!("Invalid category"),
+                }
+            }
+        }
+    }
+
+    0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part_1_test() {
+        assert_eq!(part_1(TEST), 19_114);
+    }
+
+    #[test]
+    fn part_2_test() {
+        assert_eq!(part_2(TEST), 167_409_079_868_000);
+    }
 }
