@@ -83,7 +83,7 @@ fn main() {
     let s = Instant::now();
     println!(
         "Part 2 = {} in {:?}",
-        part_2(TEST),
+        part_2(INPUT),
         Instant::now().duration_since(s)
     );
 }
@@ -185,7 +185,7 @@ fn part_1(input: &str) -> usize {
     total
 }
 
-fn part_2(input: &str) -> u128 {
+fn part_2(input: &str) -> usize {
     let mut workflow_map: HashMap<String, Vec<(_, _)>> = HashMap::new();
     let (workflows, _parts) = input.split_once("\n\n").unwrap();
     for line in workflows.lines() {
@@ -220,28 +220,33 @@ fn part_2(input: &str) -> u128 {
         workflow_map.insert(name.to_string(), rules);
     }
 
-    let mut total = 0;
-
     let mut accepted = vec![];
-    let mut states = vec![("in", (0, 4000), (0, 4000), (0, 4000), (0, 4000))];
+    let mut states = vec![("in", (1, 4000), (1, 4000), (1, 4000), (1, 4000))];
 
-    while let Some((destination, mut m_range, mut a_range, mut s_range, mut x_range)) = states.pop() {
+    while let Some((destination, mut m_range, mut a_range, mut s_range, mut x_range)) = states.pop()
+    {
+        if destination == "A" {
+            accepted.push((m_range, a_range, s_range, x_range));
+            continue;
+        }
+        if destination == "R" {
+            continue;
+        }
         let workflow = workflow_map.get(destination).unwrap();
         for (rule, dest) in workflow {
             if rule.is_none() {
-                match dest.as_str() {
-                    "A" => accepted.push((m_range, a_range, s_range, x_range)),
-                    "R" => {}
-                    _ => states.push((dest, m_range, a_range, s_range, x_range)),
-                }
+                states.push((dest, m_range, a_range, s_range, x_range));
                 continue;
-            } else {
-                let rule = rule.as_ref().unwrap();
-
-                match rule.category {
-                    'm' => {
-                        if rule.operation == '<' {
-                            if m_range.0 < rule.size {
+            }
+            let rule = rule.as_ref().unwrap();
+            match rule.operation {
+                '<' => {
+                    match rule.category {
+                        'm' => {
+                            if m_range.0 < rule.size && m_range.1 < rule.size {
+                                states.push((dest, m_range, a_range, s_range, x_range));
+                            } else if m_range.0 < rule.size && m_range.1 > rule.size {
+                                // split, add a state for within range to go to next dest
                                 states.push((
                                     dest,
                                     (m_range.0, rule.size - 1),
@@ -249,168 +254,149 @@ fn part_2(input: &str) -> u128 {
                                     s_range,
                                     x_range,
                                 ));
+                                // shorten range and fall thru to next
                                 m_range = (rule.size, m_range.1);
                             }
-                            if m_range.1 < rule.size {
-                                states.push((
-                                    dest,
-                                    (rule.size, m_range.1),
-                                    a_range,
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
-                        } else {
-                            if m_range.0 > rule.size {
-                                states.push((
-                                    dest,
-                                    (rule.size, m_range.0),
-                                    a_range,
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
-                            if m_range.1 > rule.size {
-                                states.push((
-                                    dest,
-                                    (m_range.1, rule.size),
-                                    a_range,
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
+                            continue;
                         }
+                        'a' => {
+                            if a_range.0 < rule.size && a_range.1 < rule.size {
+                                states.push((dest, m_range, a_range, s_range, x_range));
+                            } else if a_range.0 < rule.size && a_range.1 > rule.size {
+                                // split, add a state for within range to go to next dest
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    (a_range.0, rule.size - 1),
+                                    s_range,
+                                    x_range,
+                                ));
+                                // shorten range and fall thru to next
+                                a_range = (rule.size, a_range.1);
+                            }
+                            continue;
+                        }
+                        's' => {
+                            if s_range.0 < rule.size && s_range.1 < rule.size {
+                                states.push((dest, m_range, a_range, s_range, x_range));
+                            } else if s_range.0 < rule.size && s_range.1 > rule.size {
+                                // split, add a state for within range to go to next dest
+                                let split = (s_range.0, rule.size - 1);
+                                states.push((dest, m_range, a_range, split, x_range));
+                                // shorten range and fall thru to next
+                                s_range = (rule.size, s_range.1);
+                            }
+                            continue;
+                        }
+                        'x' => {
+                            if x_range.0 < rule.size && x_range.1 < rule.size {
+                                states.push((dest, m_range, a_range, s_range, x_range));
+                            } else if x_range.0 < rule.size && x_range.1 > rule.size {
+                                // split, add a state for within range to go to next dest
+                                states.push((
+                                    dest,
+                                    m_range,
+                                    a_range,
+                                    s_range,
+                                    (x_range.0, rule.size - 1),
+                                ));
+                                // shorten range and fall thru to next
+                                x_range = (rule.size, x_range.1);
+                            }
+                            continue;
+                        }
+                        _ => unreachable!("Invalid category"),
+                    }
+                }
+                '>' => match rule.category {
+                    'm' => {
+                        if m_range.0 > rule.size && m_range.1 > rule.size {
+                            states.push((dest, m_range, a_range, s_range, x_range));
+                        } else if m_range.0 < rule.size && m_range.1 > rule.size {
+                            // split, add a state for within range to go to next dest
+                            states.push((
+                                dest,
+                                (rule.size + 1, m_range.1),
+                                a_range,
+                                s_range,
+                                x_range,
+                            ));
+                            // shorten range and fall thru to next
+                            m_range = (m_range.0, rule.size);
+                        }
+                        continue;
                     }
                     'a' => {
-                        if rule.operation == '<' {
-                            if a_range.0 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    (a_range.0, rule.size),
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
-                            if a_range.1 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    (rule.size, a_range.1),
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
-                        } else {
-                            if a_range.0 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    (rule.size, a_range.0),
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
-                            if a_range.1 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    (a_range.1, rule.size),
-                                    s_range,
-                                    x_range,
-                                ));
-                            }
+                        if a_range.0 > rule.size && a_range.1 > rule.size {
+                            states.push((dest, m_range, a_range, s_range, x_range));
+                        } else if a_range.0 < rule.size && a_range.1 > rule.size {
+                            // split, add a state for within range to go to next dest
+                            states.push((
+                                dest,
+                                m_range,
+                                (rule.size + 1, a_range.1),
+                                s_range,
+                                x_range,
+                            ));
+                            // shorten range and fall thru to next
+                            a_range = (a_range.0, rule.size);
                         }
+                        continue;
                     }
                     's' => {
-                        if rule.operation == '<' {
-                            if s_range.0 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    (s_range.0, rule.size),
-                                    x_range,
-                                ));
-                            }
-                            if s_range.1 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    (rule.size, s_range.1),
-                                    x_range,
-                                ));
-                            }
-                        } else {
-                            if s_range.0 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    (rule.size, s_range.0),
-                                    x_range,
-                                ));
-                            }
-                            if s_range.1 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    (s_range.1, rule.size),
-                                    x_range,
-                                ));
-                            }
+                        if s_range.0 > rule.size && s_range.1 > rule.size {
+                            states.push((dest, m_range, a_range, s_range, x_range));
+                        } else if s_range.0 < rule.size && s_range.1 > rule.size {
+                            // split, add a state for within range to go to next dest
+                            states.push((
+                                dest,
+                                m_range,
+                                a_range,
+                                (rule.size + 1, s_range.1),
+                                x_range,
+                            ));
+                            // shorten range and fall thru to next
+                            s_range = (s_range.0, rule.size);
                         }
+                        continue;
                     }
                     'x' => {
-                        if rule.operation == '<' {
-                            if x_range.0 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    s_range,
-                                    (x_range.0, rule.size),
-                                ));
-                            }
-                            if x_range.1 < rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    s_range,
-                                    (rule.size, x_range.1),
-                                ));
-                            }
-                        } else {
-                            if x_range.0 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    s_range,
-                                    (rule.size, x_range.0),
-                                ));
-                            }
-                            if x_range.1 > rule.size {
-                                states.push((
-                                    dest,
-                                    m_range,
-                                    a_range,
-                                    s_range,
-                                    (x_range.1, rule.size),
-                                ));
-                            }
+                        if x_range.0 > rule.size && x_range.1 > rule.size {
+                            states.push((dest, m_range, a_range, s_range, x_range));
+                        } else if x_range.0 < rule.size && x_range.1 > rule.size {
+                            // split, add a state for within range to go to next dest
+                            states.push((
+                                dest,
+                                m_range,
+                                a_range,
+                                s_range,
+                                (rule.size + 1, x_range.1),
+                            ));
+                            // shorten range and fall thru to next
+                            x_range = (x_range.0, rule.size);
                         }
+                        continue;
                     }
                     _ => unreachable!("Invalid category"),
-                }
+                },
+                _ => unreachable!("Invalid operation"),
             }
         }
     }
 
-    0
+    // for range in &accepted {
+    //     println!("{:?}", range);
+    // }
+
+    let mut total = 0;
+
+    for (m, a, s, x) in accepted {
+        let range_total = (m.1 - m.0 + 1) * (a.1 - a.0 + 1) * (s.1 - s.0 + 1) * (x.1 - x.0 + 1);
+        // println!("{}", range_total);
+        total += range_total
+    }
+
+    total
 }
 
 #[cfg(test)]
