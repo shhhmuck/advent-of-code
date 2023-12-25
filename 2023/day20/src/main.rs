@@ -242,7 +242,7 @@ fn part_2(input: &str) -> usize {
     let mut idx = 0;
     loop {
         if cycles.iter().all(|c| c.len() >= 2) {
-            println!("Broke at {idx}");
+            // we have enough to calculate the lcm
             break;
         }
 
