@@ -4,7 +4,11 @@ const INPUT: &str = include_str!("./input.txt");
 
 fn main() {
     let s = Instant::now();
-    println!("Part 1: {} in {:?}", part_1(INPUT, (200000000000000.0, 400000000000000.0)), Instant::now().duration_since(s));
+    println!(
+        "Part 1: {} in {:?}",
+        part_1(INPUT, (200000000000000.0, 400000000000000.0)),
+        Instant::now().duration_since(s)
+    );
 }
 
 #[derive(Debug)]
