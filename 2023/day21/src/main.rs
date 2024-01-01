@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::HashSet;
 use std::time::Instant;
 
 const INPUT: &str = include_str!("./input.txt");
@@ -51,12 +51,17 @@ fn main() {
     );
 }
 
+//
+fn part_2(input: &str) -> usize {
+    0
+}
+
 fn part_1(input: &str, max_steps: usize) -> usize {
     let garden = deser(input);
 
     let mut lasts: HashSet<Spot> = HashSet::new(); // the final spot of the paths that are max_steps long
     let mut stack: Vec<Vec<Spot>> = Vec::new(); // queue of paths to explore
-    let mut visited: HashSet<(Spot, usize, (isize, isize))> = HashSet::new(); // visited hash of the spot, step, and direction (not sure if direction is relevant)
+    let mut visited: HashSet<(Spot, usize)> = HashSet::new(); // visited hash of the spot + what step we visited it on (to avoid cycles)
 
     let start = garden
         .iter()
@@ -66,7 +71,13 @@ fn part_1(input: &str, max_steps: usize) -> usize {
 
     stack.push(vec![*start]);
 
+    // let mut highest_stack = 0;
+
     while let Some(path) = stack.pop() {
+        // if stack.len() > highest_stack {
+        //     highest_stack = stack.len();
+
+        // }
         if path.len() - 1 == max_steps {
             lasts.insert(path.last().unwrap().clone());
             continue;
@@ -88,17 +99,17 @@ fn part_1(input: &str, max_steps: usize) -> usize {
 
                 let next_spot = garden[new_row][new_col];
 
-                if next_spot.kind != SpotKind::Rock
-                    && !visited.contains(&(next_spot, path.len(), *direction))
-                {
+                if next_spot.kind != SpotKind::Rock && !visited.contains(&(next_spot, path.len())) {
                     let mut new_path = path.clone();
                     new_path.push(next_spot);
                     stack.push(new_path);
-                    visited.insert((next_spot, path.len(), *direction));
+                    visited.insert((next_spot, path.len()));
                 }
             }
         }
     }
+
+    // println!("Stack: {}", highest_stack);
 
     lasts.len()
 }
